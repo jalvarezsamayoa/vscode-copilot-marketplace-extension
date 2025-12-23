@@ -15,7 +15,7 @@
           "source": {
             "type": "string",
             "description": "Source type (e.g., 'github')",
-            "enum": ["github"]
+            "enum": ["github", "directory"]
           },
           "repo": {
             "type": "string",
@@ -39,12 +39,12 @@
   },
   "examples": [
     {
-      "claude-plugins-official": {
+      "vscode-copilot-plugins": {
         "source": {
           "source": "github",
-          "repo": "anthropics/claude-plugins-official"
+          "repo": "jalvarezsamayoa/vscode-copilot-plugins"
         },
-        "installLocation": "/Users/javieralvarezsamayoa/.claude/plugins/marketplaces/claude-plugins-official",
+        "installLocation": "/Users/javieralvarezsamayoa/.copilot/plugins/marketplaces/vscode-copilot-plugins",
         "lastUpdated": "2025-12-23T14:40:40.045Z"
       }
     }
