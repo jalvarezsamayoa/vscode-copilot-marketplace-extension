@@ -21,15 +21,36 @@ export function activate(context: vscode.ExtensionContext) {
 		if (marketplaces.length === 0) {
 			vscode.window.showErrorMessage('No marketplaces found. Please add a marketplace repository first.');
 		} else {			
-			vscode.window.showQuickPick(marketplaces)
+			vscode.window.showQuickPick(marketplaces);
 		}
 	});
 
 	// Add a Marketplace command
-	const addMarketplace = vscode.commands.registerCommand('vscode-copilot-marketplace.addMarketplace', () => {
-		// The code you place here will be executed every time your command is executed
-		// Display a message box to the user
-		vscode.window.showInformationMessage('Add a new om marketplace repository.');
+	const addMarketplace = vscode.commands.registerCommand('vscode-copilot-marketplace.addMarketplace', async () => {
+		const input = await vscode.window.showInputBox({
+			prompt: 'Enter Marketplace Git URL or Local Path',
+			placeHolder: 'https://github.com/owner/repo.git or /path/to/local/dir',
+			ignoreFocusOut: true
+		});
+
+		if (!input) {
+			return;
+		}
+
+		await vscode.window.withProgress({
+			location: vscode.ProgressLocation.Notification,
+			title: 'Adding Marketplace...',
+			cancellable: false
+		}, async (progress) => {
+			const service = new MarketplaceService();
+			try {
+				progress.report({ message: 'Fetching and validating manifest...' });
+				const name = await service.addMarketplace(input);
+				vscode.window.showInformationMessage(`Marketplace '${name}' added successfully.`);
+			} catch (error) {
+				vscode.window.showErrorMessage(`Failed to add marketplace: ${error instanceof Error ? error.message : String(error)}`);
+			}
+		});
 	});
 
 	const removeMarketplace = vscode.commands.registerCommand('vscode-copilot-marketplace.removeMarketplace', () => {

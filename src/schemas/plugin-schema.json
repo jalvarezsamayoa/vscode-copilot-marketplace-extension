@@ -1,0 +1,117 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Copilot Plugin Manifest Schema",
+  "type": "object",
+  "required": ["name"],
+  "properties": {
+    "name": {
+      "type": "string",
+      "description": "Unique identifier for the plugin (kebab-case, no spaces).",
+      "pattern": "^[a-z0-9-]+$"
+    },
+    "version": {
+      "type": "string",
+      "description": "Semantic version of the plugin.",
+      "pattern": "^\\d+\\.\\d+\\.\\d+(-[a-zA-Z0-9.]+)?$"
+    },
+    "description": {
+      "type": "string",
+      "description": "Brief explanation of the plugin's purpose."
+    },
+    "author": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "name": { "type": "string" },
+            "email": { "type": "string", "format": "email" },
+            "url": { "type": "string", "format": "uri" }
+          },
+          "required": ["name"]
+        },
+        { "type": "string" }
+      ],
+      "description": "Author information."
+    },
+    "homepage": {
+      "type": "string",
+      "format": "uri",
+      "description": "URL to the plugin's documentation or homepage."
+    },
+    "repository": {
+      "type": "string",
+      "format": "uri",
+      "description": "URL to the plugin's source code repository."
+    },
+    "license": {
+      "type": "string",
+      "description": "License identifier (e.g., MIT, Apache-2.0)."
+    },
+    "keywords": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Discovery tags for the plugin."
+    },
+    "commands": {
+      "oneOf": [
+        { "type": "string", "pattern": "^\\./" },
+        {
+          "type": "array",
+          "items": { "type": "string", "pattern": "^\\./" }
+        }
+      ],
+      "description": "Additional command files or directories relative to plugin root."
+    },
+    "agents": {
+      "oneOf": [
+        { "type": "string", "pattern": "^\\./" },
+        {
+          "type": "array",
+          "items": { "type": "string", "pattern": "^\\./" }
+        }
+      ],
+      "description": "Additional agent files or directories relative to plugin root."
+    },
+    "skills": {
+      "oneOf": [
+        { "type": "string", "pattern": "^\\./" },
+        {
+          "type": "array",
+          "items": { "type": "string", "pattern": "^\\./" }
+        }
+      ],
+      "description": "Additional skill directories relative to plugin root."
+    },
+    "hooks": {
+      "oneOf": [
+        { "type": "string", "pattern": "^\\./" },
+        { "type": "object" }
+      ],
+      "description": "Hook configuration path or inline configuration."
+    },
+    "mcpServers": {
+      "oneOf": [
+        { "type": "string", "pattern": "^\\./" },
+        { "type": "object" }
+      ],
+      "description": "MCP server configuration path or inline configuration."
+    },
+    "outputStyles": {
+      "oneOf": [
+        { "type": "string", "pattern": "^\\./" },
+        {
+          "type": "array",
+          "items": { "type": "string", "pattern": "^\\./" }
+        }
+      ],
+      "description": "Additional output style files or directories."
+    },
+    "lspServers": {
+      "oneOf": [
+        { "type": "string", "pattern": "^\\./" },
+        { "type": "object" }
+      ],
+      "description": "LSP server configuration path or inline configuration."
+    }
+  }
+}

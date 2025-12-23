@@ -1,12 +1,21 @@
 import * as os from 'os';
 import * as fs from 'fs';
 import * as path from 'path';
+import simpleGit, { SimpleGit } from 'simple-git';
+import Ajv from 'ajv';
+import addFormats from 'ajv-formats';
+import * as marketplaceSchema from '../schemas/marketplace-schema.json';
 
 export class MarketplaceService {
     private readonly getHomeDir: () => string;
+    private readonly gitFactory: (baseDir?: string) => SimpleGit;
+    private readonly ajv: Ajv;
 
-    constructor(getHomeDir: () => string = os.homedir) {
+    constructor(getHomeDir: () => string = os.homedir, gitFactory: (baseDir?: string) => SimpleGit = simpleGit) {
         this.getHomeDir = getHomeDir;
+        this.gitFactory = gitFactory;
+        this.ajv = new Ajv();
+        addFormats(this.ajv);
     }
 
     async ensureCacheDirectoryExists(): Promise<void> {
@@ -43,6 +52,108 @@ export class MarketplaceService {
         }
 
         return marketplaces;
+    }
+
+    public async addMarketplace(source: string): Promise<string> {
+        const manifest = await this.fetchManifest(source);
+        this.validateManifest(manifest);
+
+        const name = manifest.name;
+        await this.checkCollision(name);
+
+        await this.installMarketplace(source, name);
+        return name;
+    }
+
+    private async fetchManifest(source: string): Promise<any> {
+        if (this.isGitUrl(source)) {
+            return this.fetchGitManifest(source);
+        } else {
+            return this.fetchLocalManifest(source);
+        }
+    }
+
+    private isGitUrl(source: string): boolean {
+        return /^(https?:\/\/|git@|ssh:\/\/|git:\/\/)/.test(source);
+    }
+
+    private async fetchLocalManifest(dirPath: string): Promise<any> {
+        // Resolve home directory (~) if present
+        if (dirPath.startsWith('~')) {
+            dirPath = path.join(this.getHomeDir(), dirPath.slice(1));
+        }
+        
+        const manifestPath = path.join(dirPath, '.copilot-plugin', 'marketplace.json');
+        try {
+            const content = await fs.promises.readFile(manifestPath, 'utf-8');
+            return JSON.parse(content);
+        } catch (error) {
+            throw new Error(`Failed to read manifest from ${manifestPath}: ${error instanceof Error ? error.message : String(error)}`);
+        }
+    }
+
+    private async fetchGitManifest(url: string): Promise<any> {
+        const tempDir = await fs.promises.mkdtemp(path.join(os.tmpdir(), 'copilot-mp-'));
+        try {
+            const git = this.gitFactory();
+            await git.clone(url, tempDir, ['--depth', '1', '--no-checkout']);
+            
+            const gitInTemp = this.gitFactory(tempDir);
+            await gitInTemp.checkout(['HEAD', '--', '.copilot-plugin/marketplace.json']);
+
+            const manifestPath = path.join(tempDir, '.copilot-plugin', 'marketplace.json');
+            const content = await fs.promises.readFile(manifestPath, 'utf-8');
+            return JSON.parse(content);
+        } catch (error) {
+            throw new Error(`Failed to fetch manifest from git ${url}: ${error instanceof Error ? error.message : String(error)}`);
+        } finally {
+            await fs.promises.rm(tempDir, { recursive: true, force: true });
+        }
+    }
+
+    private validateManifest(manifest: any): void {
+        const validate = this.ajv.compile(marketplaceSchema);
+        const valid = validate(manifest);
+
+        if (!valid) {
+            const errors = validate.errors?.map(e => `${e.instancePath} ${e.message}`).join(', ');
+            console.error('Schema validation failed:', validate.errors);
+            throw new Error(`Manifest validation failed: ${errors}`);
+        }
+    }
+
+    private async checkCollision(name: string): Promise<void> {
+        const homeDir = this.getHomeDir();
+        const cachePath = path.join(homeDir, '.copilot', 'marketplace', 'cache', name);
+
+        try {
+            await fs.promises.access(cachePath);
+            throw new Error(`Marketplace '${name}' already exists.`);
+        } catch (error) {
+            // If it's the specific collision error, rethrow it
+            if (error instanceof Error && error.message.includes('already exists')) {
+                throw error;
+            }
+            // Otherwise, assumes it doesn't exist (ENOENT), which is what we want
+        }
+    }
+
+    private async installMarketplace(source: string, name: string): Promise<void> {
+        const homeDir = this.getHomeDir();
+        const targetPath = path.join(homeDir, '.copilot', 'marketplace', 'cache', name);
+        
+        await this.ensureCacheDirectoryExists();
+
+        if (this.isGitUrl(source)) {
+            await this.gitFactory().clone(source, targetPath);
+        } else {
+             // Resolve home directory (~) if present
+             let dirPath = source;
+             if (dirPath.startsWith('~')) {
+                 dirPath = path.join(this.getHomeDir(), dirPath.slice(1));
+             }
+            await fs.promises.cp(dirPath, targetPath, { recursive: true });
+        }
     }
 
     private async parseManifest(manifestPath: string): Promise<string | null> {

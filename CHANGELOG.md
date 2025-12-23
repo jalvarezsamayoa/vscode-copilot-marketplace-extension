@@ -18,6 +18,10 @@ Check [Keep a Changelog](http://keepachangelog.com/) for recommendations on how 
 
 - Unit tests for `MarketplaceService` using `sinon`.
 
+### Fixed
+
+- Allow `repository` field in marketplace schema to support manifests with repository URLs.
+
 - Added `sinon` and `@types/sinon` as dev dependencies.
 
 

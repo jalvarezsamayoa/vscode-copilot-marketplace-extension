@@ -1,0 +1,207 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Claude Code Plugin Marketplace Schema",
+  "description": "Schema for the marketplace.json file, defining a collection of Claude Code plugins.",
+  "type": "object",
+  "required": ["name", "owner", "plugins"],
+  "properties": {
+    "name": {
+      "type": "string",
+      "description": "Marketplace identifier (kebab-case, no spaces). Public-facing, used when installing plugins (e.g., /plugin install my-tool@your-marketplace).",
+      "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$",
+      "maxLength": 64
+    },
+    "owner": {
+      "type": "object",
+      "description": "Marketplace maintainer information.",
+      "required": ["name"],
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "Name of the maintainer or team."
+        },
+        "email": {
+          "type": "string",
+          "description": "Contact email for the maintainer.",
+          "format": "email"
+        }
+      },
+      "additionalProperties": false
+    },
+    "metadata": {
+      "type": "object",
+      "description": "Optional metadata for the marketplace.",
+      "properties": {
+        "description": {
+          "type": "string",
+          "description": "Brief marketplace description."
+        },
+        "version": {
+          "type": "string",
+          "description": "Marketplace version (e.g., semantic versioning)."
+        },
+        "pluginRoot": {
+          "type": "string",
+          "description": "Base directory prepended to relative plugin source paths (e.g., './plugins' lets you write 'source': 'formatter' instead of 'source': './plugins/formatter')."
+        }
+      },
+      "additionalProperties": false
+    },
+    "repository": {
+      "type": "string",
+      "description": "URL of the marketplace repository.",
+      "format": "uri"
+    },
+    "plugins": {
+      "type": "array",
+      "description": "List of available plugins in this marketplace.",
+      "items": {
+        "type": "object",
+        "required": ["name", "source"],
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Plugin identifier (kebab-case, no spaces). Public-facing, used when installing (e.g., /plugin install my-plugin@marketplace).",
+            "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$",
+            "maxLength": 64
+          },
+          "source": {
+            "description": "Where to fetch the plugin from.",
+            "oneOf": [
+              {
+                "type": "string",
+                "description": "Relative path for plugins in the same repository (e.g., './plugins/my-plugin')."
+              },
+              {
+                "type": "object",
+                "required": ["source"],
+                "properties": {
+                  "source": {
+                    "type": "string",
+                    "enum": ["github", "url"],
+                    "description": "Type of source for the plugin."
+                  },
+                  "repo": {
+                    "type": "string",
+                    "description": "GitHub repository in 'owner/repo' format (e.g., 'owner/plugin-repo'). Required if source is 'github'."
+                  },
+                  "url": {
+                    "type": "string",
+                    "format": "uri",
+                    "description": "Full Git repository URL (e.g., 'https://gitlab.com/team/plugin.git'). Required if source is 'url'."
+                  },
+                  "ref": {
+                    "type": "string",
+                    "description": "Specific branch, tag, or commit hash for the repository."
+                  },
+                  "path": {
+                    "type": "string",
+                    "description": "Path within the repository to the plugin's root directory."
+                  }
+                },
+                "if": { "properties": { "source": { "const": "github" } } },
+                "then": { "required": ["repo"] },
+                "else": { "if": { "properties": { "source": { "const": "url" } } }, "then": { "required": ["url"] } }
+              }
+            ]
+          },
+          "description": {
+            "type": "string",
+            "description": "Brief plugin description."
+          },
+          "version": {
+            "type": "string",
+            "description": "Plugin version (e.g., semantic versioning)."
+          },
+          "author": {
+            "type": "object",
+            "description": "Plugin author information.",
+            "required": ["name"],
+            "properties": {
+              "name": {
+                "type": "string",
+                "description": "Name of the plugin author."
+              },
+              "email": {
+                "type": "string",
+                "description": "Contact email for the author.",
+                "format": "email"
+              }
+            },
+            "additionalProperties": false
+          },
+          "homepage": {
+            "type": "string",
+            "format": "uri",
+            "description": "Plugin homepage or documentation URL."
+          },
+          "repository": {
+            "type": "string",
+            "format": "uri",
+            "description": "Source code repository URL."
+          },
+          "license": {
+            "type": "string",
+            "description": "SPDX license identifier (e.g., MIT, Apache-2.0)."
+          },
+          "keywords": {
+            "type": "array",
+            "items": { "type": "string" },
+            "description": "Tags for plugin discovery and categorization."
+          },
+          "category": {
+            "type": "string",
+            "description": "Plugin category for organization."
+          },
+          "tags": {
+            "type": "array",
+            "items": { "type": "string" },
+            "description": "Tags for searchability."
+          },
+          "strict": {
+            "type": "boolean",
+            "description": "Controls whether plugins need their own plugin.json file. When true (default), the plugin source must contain a plugin.json. When false, the plugin doesn't need its own plugin.json; the marketplace entry itself defines everything about the plugin."
+          },
+          "commands": {
+            "description": "Custom paths to command files or directories.",
+            "oneOf": [
+              { "type": "string" },
+              { "type": "array", "items": { "type": "string" } }
+            ]
+          },
+          "agents": {
+            "description": "Custom paths to agent files.",
+            "oneOf": [
+              { "type": "string" },
+              { "type": "array", "items": { "type": "string" } }
+            ]
+          },
+          "hooks": {
+            "description": "Custom hooks configuration or path to hooks file.",
+            "oneOf": [
+              { "type": "string" },
+              { "type": "object" }
+            ]
+          },
+          "mcpServers": {
+            "description": "MCP server configurations or path to MCP config.",
+            "oneOf": [
+              { "type": "string" },
+              { "type": "object" }
+            ]
+          },
+          "lspServers": {
+            "description": "LSP server configurations or path to LSP config.",
+            "oneOf": [
+              { "type": "string" },
+              { "type": "object" }
+            ]
+          }
+        },
+        "additionalProperties": false
+      },
+      "minItems": 0
+    }
+  },
+  "additionalProperties": false
+}
