@@ -79,6 +79,47 @@
 				"npm: watch-tests"
 			],
 			"problemMatcher": []
+		},
+		{
+			"label": "git: squash and merge to main",
+			"type": "shell",
+			"command": "${workspaceFolder}/scripts/squash-and-merge.sh",
+			"presentation": {
+				"reveal": "always",
+				"panel": "new",
+				"focus": true,
+				"showReuseMessage": false,
+				"clear": false
+			},
+			"group": {
+				"kind": "test",
+				"isDefault": false
+			},
+			"runOptions": {
+				"runOn": "userInput"
+			},
+			"problemMatcher": []
+		},
+		{
+			"label": "git: squash and merge (force, no prompts)",
+			"type": "shell",
+			"command": "${workspaceFolder}/scripts/squash-and-merge.sh",
+			"args": ["--force"],
+			"presentation": {
+				"reveal": "always",
+				"panel": "new",
+				"focus": true,
+				"showReuseMessage": false,
+				"clear": false
+			},
+			"group": {
+				"kind": "test",
+				"isDefault": false
+			},
+			"runOptions": {
+				"runOn": "userInput"
+			},
+			"problemMatcher": []
 		}
 	]
 }
