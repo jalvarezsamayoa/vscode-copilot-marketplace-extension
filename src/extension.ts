@@ -3,168 +3,189 @@
 import * as vscode from 'vscode';
 import { MarketplaceService } from './services/marketplaceService';
 
-// This method is called when your extension is activated
-// Your extension is activated the very first time the command is executed
+async function _handleListMarketplace(): Promise<void> {
+	const service = new MarketplaceService();
+	const marketplaces = await service.getMarketplaces();
+
+	if (marketplaces.length === 0) {
+		vscode.window.showErrorMessage(
+			'No marketplaces found. Please add a marketplace repository first.'
+		);
+		return;
+	}
+
+	const selection = await vscode.window.showQuickPick(marketplaces, {
+		placeHolder: 'Select a marketplace'
+	});
+
+	if (selection) {
+		vscode.window.showInformationMessage(`Selected: ${selection.label}`);
+	}
+}
+
+async function _getMarketplaceInput(): Promise<string | undefined> {
+	return vscode.window.showInputBox({
+		prompt: 'Enter Marketplace Git URL or Local Path',
+		placeHolder: 'https://github.com/owner/repo.git or /path/to/local/dir',
+		ignoreFocusOut: true
+	});
+}
+
+async function _performAddMarketplace(input: string): Promise<void> {
+	await vscode.window.withProgress({
+		location: vscode.ProgressLocation.Notification,
+		title: 'Adding Marketplace...',
+		cancellable: false
+	}, async (progress) => {
+		const service = new MarketplaceService();
+		try {
+			progress.report({ message: 'Fetching and validating manifest...' });
+			const name = await service.addMarketplace(input);
+			vscode.window.showInformationMessage(
+				`Marketplace '${name}' added successfully.`
+			);
+		} catch (error) {
+			const msg = error instanceof Error ? error.message : String(error);
+			vscode.window.showErrorMessage(`Failed to add marketplace: ${msg}`);
+		}
+	});
+}
+
+async function _handleAddMarketplace(): Promise<void> {
+	const input = await _getMarketplaceInput();
+	if (input) {
+		await _performAddMarketplace(input);
+	}
+}
+
+async function _selectMarketplaceFromUser(
+	action: string
+): Promise<vscode.QuickPickItem | undefined> {
+	const service = new MarketplaceService();
+	const marketplaces = await service.getMarketplaces();
+
+	if (marketplaces.length === 0) {
+		vscode.window.showErrorMessage(`No marketplaces found to ${action}.`);
+		return;
+	}
+
+	return vscode.window.showQuickPick(marketplaces, {
+		placeHolder: `Select a marketplace to ${action}`
+	});
+}
+
+async function _getRemovalConfirmation(label: string): Promise<boolean> {
+	const confirmationOptions: vscode.QuickPickItem[] = [
+		{ label: 'Yes' },
+		{ label: 'No' }
+	];
+
+	const confirmation = await vscode.window.showQuickPick(confirmationOptions, {
+		placeHolder: `Remove ${label}?`
+	});
+
+	return confirmation?.label === 'Yes';
+}
+
+async function _performRemoval(label: string): Promise<void> {
+	await vscode.window.withProgress({
+		location: vscode.ProgressLocation.Notification,
+		title: `Removing ${label}...`,
+		cancellable: false
+	}, async () => {
+		const service = new MarketplaceService();
+		try {
+			await service.removeMarketplace(label);
+			vscode.window.showInformationMessage(
+				`Marketplace '${label}' has been successfully removed.`
+			);
+		} catch (error) {
+			const msg = error instanceof Error ? error.message : String(error);
+			vscode.window.showErrorMessage(`Failed to remove marketplace: ${msg}`);
+		}
+	});
+}
+
+async function _handleRemoveMarketplace(): Promise<void> {
+	const selection = await _selectMarketplaceFromUser('remove');
+	if (!selection) {
+		return;
+	}
+
+	const confirmed = await _getRemovalConfirmation(selection.label);
+	if (confirmed) {
+		await _performRemoval(selection.label);
+	}
+}
+
+async function _performUpdateMarketplace(label: string): Promise<void> {
+	await vscode.window.withProgress({
+		location: vscode.ProgressLocation.Notification,
+		title: `Updating ${label}...`,
+		cancellable: false
+	}, async () => {
+		const service = new MarketplaceService();
+		try {
+			await service.updateMarketplace(label);
+			vscode.window.showInformationMessage(
+				`Marketplace '${label}' updated successfully.`
+			);
+		} catch (error) {
+			if (error instanceof Error && error.message === 'NOT_A_GIT_REPO') {
+				vscode.window.showInformationMessage(
+					'This only works for git repositories.'
+				);
+			} else {
+				const msg = error instanceof Error ? error.message : String(error);
+				vscode.window.showErrorMessage(
+					`Failed to update marketplace: ${msg}`
+				);
+			}
+		}
+	});
+}
+
+async function _handleUpdateMarketplace(): Promise<void> {
+	const selection = await _selectMarketplaceFromUser('update');
+	if (selection) {
+		await _performUpdateMarketplace(selection.label);
+	}
+}
+
+function _handleListPlugins(): void {
+	vscode.window.showInformationMessage('List of installed plugins.');
+}
+
+function _handleAddPlugin(): void {
+	vscode.window.showInformationMessage('Add a new plugin.');
+}
+
+function _handleRemovePlugin(): void {
+	vscode.window.showInformationMessage('Remove a plugin.');
+}
+
+function _registerCommand(
+	context: vscode.ExtensionContext,
+	commandId: string,
+	handler: (...args: any[]) => any
+): void {
+	const disposable = vscode.commands.registerCommand(commandId, handler);
+	context.subscriptions.push(disposable);
+}
+
 export function activate(context: vscode.ExtensionContext) {
+	console.log(
+		'Congratulations, your extension "vscode-copilot-marketplace" is now active!'
+	);
 
-	// Use the console to output diagnostic information (console.log) and errors (console.error)
-	// This line of code will only be executed once when your extension is activated
-	console.log('Congratulations, your extension "vscode-copilot-marketplace" is now active!');
-
-	// The command has been defined in the package.json file
-	// Now provide the implementation of the command with registerCommand
-	// The commandId parameter must match the command field in package.json
-	const listMarketplace = vscode.commands.registerCommand('vscode-copilot-marketplace.listMarketplace', async () => {
-		const service = new MarketplaceService();
-		const marketplaces = await service.getMarketplaces();
-
-		if (marketplaces.length === 0) {
-			vscode.window.showErrorMessage('No marketplaces found. Please add a marketplace repository first.');
-		} else {			
-			const selection = await vscode.window.showQuickPick(marketplaces, {
-				placeHolder: 'Select a marketplace'
-			});
-			
-			if (selection) {
-				vscode.window.showInformationMessage(`Selected: ${selection.label}`);
-			}
-		}
-	});
-
-	// Add a Marketplace command
-	const addMarketplace = vscode.commands.registerCommand('vscode-copilot-marketplace.addMarketplace', async () => {
-		const input = await vscode.window.showInputBox({
-			prompt: 'Enter Marketplace Git URL or Local Path',
-			placeHolder: 'https://github.com/owner/repo.git or /path/to/local/dir',
-			ignoreFocusOut: true
-		});
-
-		if (!input) {
-			return;
-		}
-
-		await vscode.window.withProgress({
-			location: vscode.ProgressLocation.Notification,
-			title: 'Adding Marketplace...',
-			cancellable: false
-		}, async (progress) => {
-			const service = new MarketplaceService();
-			try {
-				progress.report({ message: 'Fetching and validating manifest...' });
-				const name = await service.addMarketplace(input);
-				vscode.window.showInformationMessage(`Marketplace '${name}' added successfully.`);
-			} catch (error) {
-				vscode.window.showErrorMessage(`Failed to add marketplace: ${error instanceof Error ? error.message : String(error)}`);
-			}
-		});
-	});
-
-	const removeMarketplace = vscode.commands.registerCommand('vscode-copilot-marketplace.removeMarketplace', async () => {
-		const service = new MarketplaceService();
-		const marketplaces = await service.getMarketplaces();
-
-		if (marketplaces.length === 0) {
-			vscode.window.showErrorMessage('No marketplaces found to remove.');
-			return;
-		}
-
-		const selection = await vscode.window.showQuickPick(marketplaces, {
-			placeHolder: 'Select a marketplace to remove'
-		});
-
-		if (!selection) {
-			return;
-		}
-
-		const confirmationOptions: vscode.QuickPickItem[] = [
-			{ label: 'Yes' },
-			{ label: 'No' }
-		];
-
-		const confirmation = await vscode.window.showQuickPick(confirmationOptions, {
-			placeHolder: `Remove ${selection.label}?`
-		});
-
-		if (confirmation?.label !== 'Yes') {
-			return;
-		}
-
-		await vscode.window.withProgress({
-			location: vscode.ProgressLocation.Notification,
-			title: `Removing ${selection.label}...`,
-			cancellable: false
-		}, async (progress) => {
-			try {
-				await service.removeMarketplace(selection.label);
-				vscode.window.showInformationMessage(`Marketplace '${selection.label}' has been successfully removed.`);
-			} catch (error) {
-				vscode.window.showErrorMessage(`Failed to remove marketplace: ${error instanceof Error ? error.message : String(error)}`);
-			}
-		});
-	});
-
-	const updateMarketplace = vscode.commands.registerCommand('vscode-copilot-marketplace.updateMarketplace', async () => {
-		const service = new MarketplaceService();
-		const marketplaces = await service.getMarketplaces();
-
-		if (marketplaces.length === 0) {
-			vscode.window.showErrorMessage('No marketplaces found to update.');
-			return;
-		}
-
-		const selection = await vscode.window.showQuickPick(marketplaces, {
-			placeHolder: 'Select a marketplace to update'
-		});
-
-		if (!selection) {
-			return;
-		}
-
-		await vscode.window.withProgress({
-			location: vscode.ProgressLocation.Notification,
-			title: `Updating ${selection.label}...`,
-			cancellable: false
-		}, async (progress) => {
-			try {
-				await service.updateMarketplace(selection.label);
-				vscode.window.showInformationMessage(`Marketplace '${selection.label}' updated successfully.`);
-			} catch (error) {
-				if (error instanceof Error && error.message === 'NOT_A_GIT_REPO') {
-					vscode.window.showInformationMessage('This only works for git repositories.');
-				} else {
-					vscode.window.showErrorMessage(`Failed to update marketplace: ${error instanceof Error ? error.message : String(error)}`);
-				}
-			}
-		});
-	});
-
-	const listPlugins = vscode.commands.registerCommand('vscode-copilot-marketplace.listPlugins', () => {
-		// The code you place here will be executed every time your command is executed
-		// Display a message box to the user
-		vscode.window.showInformationMessage('List of installed plugins.');
-	});
-
-	const addPlugin = vscode.commands.registerCommand('vscode-copilot-marketplace.addPlugin', () => {
-		// The code you place here will be executed every time your command is executed
-		// Display a message box to the user
-		vscode.window.showInformationMessage('Add a new plugin.');
-	});
-
-	const removePlugin = vscode.commands.registerCommand('vscode-copilot-marketplace.removePlugin', () => {
-		// The code you place here will be executed every time your command is executed
-		// Display a message box to the user
-		vscode.window.showInformationMessage('Remove a plugin.');
-	});
-
-	// Add the commands to the context subscriptions
-
-	context.subscriptions.push(listMarketplace);
-	context.subscriptions.push(addMarketplace);
-	context.subscriptions.push(removeMarketplace);
-	context.subscriptions.push(listPlugins);
-	context.subscriptions.push(addPlugin);
-	context.subscriptions.push(removePlugin);
+	_registerCommand(context, 'vscode-copilot-marketplace.listMarketplace', _handleListMarketplace);
+	_registerCommand(context, 'vscode-copilot-marketplace.addMarketplace', _handleAddMarketplace);
+	_registerCommand(context, 'vscode-copilot-marketplace.removeMarketplace', _handleRemoveMarketplace);
+	_registerCommand(context, 'vscode-copilot-marketplace.updateMarketplace', _handleUpdateMarketplace);
+	_registerCommand(context, 'vscode-copilot-marketplace.listPlugins', _handleListPlugins);
+	_registerCommand(context, 'vscode-copilot-marketplace.addPlugin', _handleAddPlugin);
+	_registerCommand(context, 'vscode-copilot-marketplace.removePlugin', _handleRemovePlugin);
 }
 
 // This method is called when your extension is deactivated
-export function deactivate() {}
+export function deactivate() { }
