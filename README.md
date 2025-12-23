@@ -1,6 +1,6 @@
-# vscode-copilot-marketplace README
+# vscode-copilot-marketplace
 
-VS Code extension for managing Copilot plugin marketplaces.
+VS Code extension for managing and discovering Copilot extensions and agents.
 
 ## Features
 
@@ -13,60 +13,92 @@ VS Code extension for managing Copilot plugin marketplaces.
 - **Update Marketplaces**: Pull the latest changes from git-based marketplaces via the "Update Copilot Marketplace" command.
 - **Marketplace Persistence**: Automatically tracks installed marketplaces in `~/.copilot/plugins/known_marketplaces.json` with metadata including source, installation location, and last update timestamp.
 
-## Requirements
+## Development
 
-If you have any requirements or dependencies, add a section describing those and how to install and configure them.
+### Prerequisites
 
-## Extension Settings
+- [Node.js](https://nodejs.org/) (latest LTS recommended)
+- [Visual Studio Code](https://code.visualstudio.com/)
 
-Include if your extension adds any VS Code settings through the `contributes.configuration` extension point.
+### Building the Extension
 
-For example:
+1. Clone the repository:
 
-This extension contributes the following settings:
+   ```bash
+   git clone https://github.com/jalvarezsamayoa/vscode-copilot-marketplace-extension.git
+   cd vscode-copilot-marketplace-extension
+   ```
 
-- `myExtension.enable`: Enable/disable this extension.
-- `myExtension.thing`: Set to `blah` to do something.
+2. Install dependencies:
 
-## Known Issues
+   ```bash
+   npm install
+   ```
 
-Calling out known issues can help limit users opening duplicate issues against your extension.
+3. Compile the extension:
 
-## Release Notes
+   ```bash
+   npm run compile
+   ```
 
-Users appreciate release notes as you update your extension.
+   Or start the watch mode to automatically recompile on changes:
 
-### 1.0.0
+   ```bash
+   npm run watch
+   ```
 
-Initial release of ...
+### Testing
 
-### 1.0.1
+#### Unit Tests
 
-Fixed issue #.
+Run the full test suite using:
 
-### 1.1.0
+```bash
+npm test
+```
 
-Added features X, Y, and Z.
+#### Manual Testing (Extension Development Host)
+
+To test the extension features manually within VS Code:
+
+1. Open the project folder in VS Code.
+2. Press `F5` (or go to **Run and Debug** and click **Run Extension**).
+3. A new window **[Extension Development Host]** will open with the extension loaded.
+4. You can now execute the Copilot Marketplace commands from the Command Palette (`Cmd+Shift+P` / `Ctrl+Shift+P`).
+
+### Installing Locally
+
+To package the extension and install it locally as a `.vsix` file:
+
+1. Generate the package:
+
+   ```bash
+   npx @vscode/vsce package
+   ```
+
+2. Install the generated `.vsix` file:
+
+   ```bash
+   code --install-extension vscode-copilot-marketplace-0.0.1.vsix
+   ```
 
 ---
 
-## Following extension guidelines
+## Release Notes
 
-Ensure that you've read through the extensions guidelines and follow the best practices for creating your extension.
+### 0.0.1
+
+Initial release of the VS Code Copilot Marketplace extension.
+
+- Marketplace management (Add, List, Update, Remove).
+- Plugin discovery and installation from marketplaces.
+- Local persistence for configuration.
+
+---
+
+## Documentation
 
 - [Extension Guidelines](https://code.visualstudio.com/api/references/extension-guidelines)
-
-## Working with Markdown
-
-You can author your README using Visual Studio Code. Here are some useful editor keyboard shortcuts:
-
-- Split the editor (`Cmd+\` on macOS or `Ctrl+\` on Windows and Linux).
-- Toggle preview (`Shift+Cmd+V` on macOS or `Shift+Ctrl+V` on Windows and Linux).
-- Press `Ctrl+Space` (Windows, Linux, macOS) to see a list of Markdown snippets.
-
-## For more information
-
 - [Visual Studio Code's Markdown Support](http://code.visualstudio.com/docs/languages/markdown)
-- [Markdown Syntax Reference](https://help.github.com/articles/markdown-basics/)
 
 **Enjoy!**
