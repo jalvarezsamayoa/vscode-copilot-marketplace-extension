@@ -73,7 +73,7 @@ To package the extension and install it locally as a `.vsix` file:
 1. Generate the package:
 
    ```bash
-   npx @vscode/vsce package
+   npm run vsix
    ```
 
 2. Install the generated `.vsix` file:
