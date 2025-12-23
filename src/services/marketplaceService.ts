@@ -19,9 +19,16 @@ export class MarketplaceService {
         addFormats(this.ajv);
     }
 
+    private getCacheDirectory(): string {
+        const envPath = process.env.COPILOT_PLUGINS_DIR;
+        if (envPath) {
+            return envPath;
+        }
+        return path.join(this.getHomeDir(), '.copilot', 'plugins', 'marketplaces');
+    }
+
     async ensureCacheDirectoryExists(): Promise<void> {
-        const homeDir = this.getHomeDir();
-        const cachePath = path.join(homeDir, '.copilot', 'marketplace', 'cache');
+        const cachePath = this.getCacheDirectory();
 
         try {
             await fs.promises.access(cachePath);
@@ -31,8 +38,7 @@ export class MarketplaceService {
     }
 
     async getMarketplaces(): Promise<vscode.QuickPickItem[]> {
-        const homeDir = this.getHomeDir();
-        const cachePath = path.join(homeDir, '.copilot', 'marketplace', 'cache');
+        const cachePath = this.getCacheDirectory();
         
         await this.ensureCacheDirectoryExists();
 
@@ -133,8 +139,7 @@ export class MarketplaceService {
     }
 
     private async checkCollision(name: string): Promise<void> {
-        const homeDir = this.getHomeDir();
-        const cachePath = path.join(homeDir, '.copilot', 'marketplace', 'cache', name);
+        const cachePath = path.join(this.getCacheDirectory(), name);
 
         try {
             await fs.promises.access(cachePath);
@@ -149,8 +154,7 @@ export class MarketplaceService {
     }
 
     private async installMarketplace(source: string, name: string): Promise<void> {
-        const homeDir = this.getHomeDir();
-        const targetPath = path.join(homeDir, '.copilot', 'marketplace', 'cache', name);
+        const targetPath = path.join(this.getCacheDirectory(), name);
         
         await this.ensureCacheDirectoryExists();
 
@@ -183,23 +187,24 @@ export class MarketplaceService {
         }
     }
 
-    public async updateMarketplace(name: string): Promise<void> {
-        const homeDir = this.getHomeDir();
-        const targetPath = path.join(homeDir, '.copilot', 'marketplace', 'cache', name);
+    private async validateGitRepository(git: SimpleGit): Promise<void> {
+        const isRepo = await git.checkIsRepo();
+        if (!isRepo) {
+            throw new Error('NOT_A_GIT_REPO');
+        }
 
+        const remotes = await git.getRemotes();
+        if (remotes.length === 0) {
+            throw new Error('NOT_A_GIT_REPO');
+        }
+    }
+
+    public async updateMarketplace(name: string): Promise<void> {
+        const targetPath = path.join(this.getCacheDirectory(), name);
         const git = this.gitFactory(targetPath);
 
         try {
-            const isRepo = await git.checkIsRepo();
-            if (!isRepo) {
-                throw new Error('NOT_A_GIT_REPO');
-            }
-
-            const remotes = await git.getRemotes();
-            if (remotes.length === 0) {
-                throw new Error('NOT_A_GIT_REPO');
-            }
-
+            await this.validateGitRepository(git);
             await git.pull();
         } catch (error) {
             if (error instanceof Error && error.message === 'NOT_A_GIT_REPO') {
@@ -210,8 +215,7 @@ export class MarketplaceService {
     }
 
     public async removeMarketplace(name: string): Promise<void> {
-        const homeDir = this.getHomeDir();
-        const targetPath = path.join(homeDir, '.copilot', 'marketplace', 'cache', name);
+        const targetPath = path.join(this.getCacheDirectory(), name);
 
         try {
             await fs.promises.rm(targetPath, { recursive: true, force: true });

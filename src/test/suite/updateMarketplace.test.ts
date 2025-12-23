@@ -18,7 +18,7 @@ suite('MarketplaceService Update Test Suite', () => {
     test('updateMarketplace should pull if git repo with remote exists', async () => {
         const mockHomeDir = () => '/mock/home';
         const mpName = 'test-mp';
-        const targetPath = path.join('/mock/home', '.copilot', 'marketplace', 'cache', mpName);
+        const targetPath = path.join('/mock/home', '.copilot', 'plugins', 'marketplaces', mpName);
 
         const gitMock = {
             checkIsRepo: sandbox.stub().resolves(true),
@@ -39,7 +39,7 @@ suite('MarketplaceService Update Test Suite', () => {
     test('updateMarketplace should throw NOT_A_GIT_REPO if not a git repo', async () => {
         const mockHomeDir = () => '/mock/home';
         const mpName = 'local-mp';
-        const targetPath = path.join('/mock/home', '.copilot', 'marketplace', 'cache', mpName);
+        const targetPath = path.join('/mock/home', '.copilot', 'plugins', 'marketplaces', mpName);
 
         const gitMock = {
             checkIsRepo: sandbox.stub().resolves(false),
@@ -61,7 +61,7 @@ suite('MarketplaceService Update Test Suite', () => {
     test('updateMarketplace should throw NOT_A_GIT_REPO if no remotes', async () => {
         const mockHomeDir = () => '/mock/home';
         const mpName = 'no-remote-mp';
-        const targetPath = path.join('/mock/home', '.copilot', 'marketplace', 'cache', mpName);
+        const targetPath = path.join('/mock/home', '.copilot', 'plugins', 'marketplaces', mpName);
 
         const gitMock = {
             checkIsRepo: sandbox.stub().resolves(true),
@@ -83,7 +83,7 @@ suite('MarketplaceService Update Test Suite', () => {
     test('updateMarketplace should throw error if git pull fails', async () => {
         const mockHomeDir = () => '/mock/home';
         const mpName = 'error-mp';
-        const targetPath = path.join('/mock/home', '.copilot', 'marketplace', 'cache', mpName);
+        const targetPath = path.join('/mock/home', '.copilot', 'plugins', 'marketplaces', mpName);
 
         const gitMock = {
             checkIsRepo: sandbox.stub().resolves(true),

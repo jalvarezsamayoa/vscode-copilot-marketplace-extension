@@ -25,14 +25,14 @@ suite('MarketplaceService Test Suite', () => {
         const service = new MarketplaceService(mockHomeDir);
         await service.ensureCacheDirectoryExists();
 
-        const expectedPath = path.join('/mock/home', '.copilot', 'marketplace', 'cache');
-        
+        const expectedPath = path.join('/mock/home', '.copilot', 'plugins', 'marketplaces');
+
         assert.ok(fsMkdirStub.calledOnceWith(expectedPath, { recursive: true }), 'fs.mkdir was not called with correct path and options');
     });
 
     test('should return empty list if cache is empty', async () => {
         const mockHomeDir = () => '/mock/home';
-        const cachePath = path.join('/mock/home', '.copilot', 'marketplace', 'cache');
+        const cachePath = path.join('/mock/home', '.copilot', 'plugins', 'marketplaces');
 
         // Mock access to succeed for cache dir
         sandbox.stub(fs.promises, 'access').withArgs(cachePath).resolves(undefined);
@@ -59,9 +59,9 @@ suite('MarketplaceService Test Suite', () => {
 
         const fsAccessStub = sandbox.stub(fs.promises, 'access');
         // Cache dir check
-        fsAccessStub.withArgs(path.join('/mock/home', '.copilot', 'marketplace', 'cache')).resolves(undefined);
+        fsAccessStub.withArgs(path.join('/mock/home', '.copilot', 'plugins', 'marketplaces')).resolves(undefined);
         // Collision check (should fail -> ENOENT means no collision)
-        fsAccessStub.withArgs(path.join('/mock/home', '.copilot', 'marketplace', 'cache', 'valid-local-marketplace')).rejects(new Error('ENOENT'));
+        fsAccessStub.withArgs(path.join('/mock/home', '.copilot', 'plugins', 'marketplaces', 'valid-local-marketplace')).rejects(new Error('ENOENT'));
 
         const fsReadFileStub = sandbox.stub(fs.promises, 'readFile').withArgs(path.join(localSource, '.copilot-plugin', 'marketplace.json')).resolves(manifestContent);
         const fsCpStub = sandbox.stub(fs.promises, 'cp').resolves();
@@ -70,7 +70,7 @@ suite('MarketplaceService Test Suite', () => {
         const name = await service.addMarketplace(localSource);
 
         assert.strictEqual(name, 'valid-local-marketplace');
-        assert.ok(fsCpStub.calledWith(localSource, path.join('/mock/home', '.copilot', 'marketplace', 'cache', 'valid-local-marketplace'), { recursive: true }));
+        assert.ok(fsCpStub.calledWith(localSource, path.join('/mock/home', '.copilot', 'plugins', 'marketplaces', 'valid-local-marketplace'), { recursive: true }));
     });
 
     test('should fail if schema validation fails', async () => {
@@ -104,12 +104,12 @@ suite('MarketplaceService Test Suite', () => {
         const fsAccessStub = sandbox.stub(fs.promises, 'access');
         // Manifest read
         sandbox.stub(fs.promises, 'readFile').resolves(manifestContent);
-        
+
         // Collision check: resolve means it exists
-        fsAccessStub.withArgs(path.join('/mock/home', '.copilot', 'marketplace', 'cache', 'existing-marketplace')).resolves(undefined);
+        fsAccessStub.withArgs(path.join('/mock/home', '.copilot', 'plugins', 'marketplaces', 'existing-marketplace')).resolves(undefined);
 
         const service = new MarketplaceService(mockHomeDir);
-        
+
         await assert.rejects(async () => {
             await service.addMarketplace(localSource);
         }, /Marketplace 'existing-marketplace' already exists/);
@@ -128,19 +128,19 @@ suite('MarketplaceService Test Suite', () => {
         const fsMkdtempStub = sandbox.stub(fs.promises, 'mkdtemp').resolves('/tmp/copilot-mp-123');
         const fsRmStub = sandbox.stub(fs.promises, 'rm').resolves();
         const fsReadFileStub = sandbox.stub(fs.promises, 'readFile').resolves(manifestContent);
-        
+
         const fsAccessStub = sandbox.stub(fs.promises, 'access');
         // Cache dir check
-        fsAccessStub.withArgs(path.join('/mock/home', '.copilot', 'marketplace', 'cache')).resolves(undefined);
+        fsAccessStub.withArgs(path.join('/mock/home', '.copilot', 'plugins', 'marketplaces')).resolves(undefined);
         // Collision check
-        fsAccessStub.withArgs(path.join('/mock/home', '.copilot', 'marketplace', 'cache', 'valid-git-marketplace')).rejects(new Error('ENOENT'));
+        fsAccessStub.withArgs(path.join('/mock/home', '.copilot', 'plugins', 'marketplaces', 'valid-git-marketplace')).rejects(new Error('ENOENT'));
 
         // Mock Git
         const gitMock = {
             clone: sandbox.stub().resolves(),
             checkout: sandbox.stub().resolves()
         };
-        
+
         const gitFactory = sandbox.stub().returns(gitMock as unknown as SimpleGit);
 
         const service = new MarketplaceService(mockHomeDir, gitFactory);
@@ -149,16 +149,16 @@ suite('MarketplaceService Test Suite', () => {
         assert.strictEqual(name, 'valid-git-marketplace');
         assert.ok(gitMock.clone.calledWith(gitUrl, '/tmp/copilot-mp-123', ['--depth', '1', '--no-checkout']));
         assert.ok(gitMock.checkout.calledWith(['HEAD', '--', '.copilot-plugin/marketplace.json']));
-        
+
         // Check install clone
-        assert.ok(gitMock.clone.calledWith(gitUrl, path.join('/mock/home', '.copilot', 'marketplace', 'cache', 'valid-git-marketplace')));
-        
+        assert.ok(gitMock.clone.calledWith(gitUrl, path.join('/mock/home', '.copilot', 'plugins', 'marketplaces', 'valid-git-marketplace')));
+
         assert.ok(fsRmStub.calledWith('/tmp/copilot-mp-123', { recursive: true, force: true }));
     });
 
     test('should return QuickPickItems with name and description', async () => {
         const mockHomeDir = () => '/mock/home';
-        const cachePath = path.join('/mock/home', '.copilot', 'marketplace', 'cache');
+        const cachePath = path.join('/mock/home', '.copilot', 'plugins', 'marketplaces');
 
         const fsAccessStub = sandbox.stub(fs.promises, 'access');
         // Mock access to succeed for cache dir
@@ -197,7 +197,7 @@ suite('MarketplaceService Test Suite', () => {
     test('removeMarketplace should delete marketplace directory', async () => {
         const mockHomeDir = () => '/mock/home';
         const mpName = 'test-marketplace';
-        const targetPath = path.join('/mock/home', '.copilot', 'marketplace', 'cache', mpName);
+        const targetPath = path.join('/mock/home', '.copilot', 'plugins', 'marketplaces', mpName);
 
         const rmStub = sandbox.stub(fs.promises, 'rm').resolves();
 

@@ -159,10 +159,10 @@ suite('removeMarketplace Command Test Suite', () => {
 	test('should properly construct cache directory path', async () => {
 		const mockHomeDir = () => '/mock/home';
 		const mpName = 'test-marketplace';
-		const expectedPath = path.join('/mock/home', '.copilot', 'marketplace', 'cache', mpName);
+		const expectedPath = path.join('/mock/home', '.copilot', 'plugins', 'marketplaces', mpName);
 
 		// This test verifies the path construction logic
-		const actualPath = path.join(mockHomeDir(), '.copilot', 'marketplace', 'cache', mpName);
+		const actualPath = path.join(mockHomeDir(), '.copilot', 'plugins', 'marketplaces', mpName);
 		assert.strictEqual(actualPath, expectedPath);
 	});
 });
