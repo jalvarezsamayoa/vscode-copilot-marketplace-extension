@@ -1,6 +1,6 @@
-# Copilot.md
+# AGENT.md
 
-<!-- Default copilot Instructions. Do not modify. -->
+<!-- Default AGENT Instructions. Do not modify. -->
 
 ## Core Directives
 
@@ -35,9 +35,9 @@ Before modifying ANY file or performing ANY complex task, you **MUST** execute t
 
 The files `README.md` and `docs/` directories contain the most up-to-date information about the repository's structure and core concepts. If you need to refer to specific files or directories, please use the appropriate relative paths.
 
-<!-- End of Default copilot Instructions. Do not modify. -->
+<!-- End of Default AGENT Instructions. Do not modify. -->
 
-<!-- Custom copilot Instructions. Modify as needed after this file -->
+<!-- Custom AGENT Instructions. Modify as needed after this file -->
 
 ## Project Context
 
