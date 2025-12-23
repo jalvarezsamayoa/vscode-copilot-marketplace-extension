@@ -78,17 +78,32 @@ This workflow applies to all new features and bug fixes. Always ensure that test
 
 **Critical Rules**:
 
-1. **Code Commits**: Never commit broken code unless it is in the Red phase of TDD (i.e., when a failing test has just been written and no implementation exists yet). Code commits must always:
+1. **Code Complexity Compliance**: All code written **MUST** comply with the ESLint complexity rules enforced by `eslint.config.mjs`. These rules are:
+   - **Cyclomatic Complexity**: Maximum of 5 (`complexity: ["warn", 5]`)
+   - **Max Nesting Depth**: Maximum of 3 (`max-depth: ["warn", 3]`)
+   - **Max Lines Per Function**: Maximum of 30 lines, excluding blank lines and comments (`max-lines-per-function: ["warn", { max: 30, skipBlankLines: true, skipComments: true }]`)
+   - **Max Parameters**: Maximum of 3 parameters per function (`max-params: ["warn", 3]`)
+
+   When writing code:
+   - Break down complex functions into smaller, focused functions
+   - Reduce nesting by using early returns and guard clauses
+   - Avoid functions that exceed 30 lines (comments and blank lines don't count)
+   - Refactor functions with more than 3 parameters into objects or additional helper functions
+   - Run `npm run lint` before committing to verify compliance
+   - Never commit code that violates these rules
+
+2. **Code Commits**: Never commit broken code unless it is in the Red phase of TDD (i.e., when a failing test has just been written and no implementation exists yet). Code commits must always:
    - Pass all tests (Green or Refactor phases)
+   - Pass ESLint linting with no violations (`npm run lint`)
    - Not introduce broken or non-functional code
    - Maintain a working state of the codebase
 
-2. **Broken Tests**: Never ignore a broken test unless it is the Red phase of TDD. If a test is failing outside of the Red phase, you must:
+3. **Broken Tests**: Never ignore a broken test unless it is the Red phase of TDD. If a test is failing outside of the Red phase, you must:
    - Investigate and fix the issue immediately
    - Ensure the test passes before proceeding
    - If a test breaks unintentionally, treat it as a blocker that must be resolved
 
-3. **Documentation**: All feature development must include a documentation phase where the repository documentation is updated. This includes:
+4. **Documentation**: All feature development must include a documentation phase where the repository documentation is updated. This includes:
    - Updating `README.md` with relevant feature information
    - Adding or updating documentation in `docs/` directory as appropriate
    - Ensuring any new APIs, commands, or behaviors are clearly documented
