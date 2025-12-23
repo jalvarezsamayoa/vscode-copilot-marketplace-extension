@@ -179,8 +179,70 @@ async function _handleListPlugins(): Promise<void> {
 	}
 }
 
-function _handleAddPlugin(): void {
-	vscode.window.showInformationMessage('Add a new plugin.');
+async function _showPluginDetails(p: any): Promise<void> {
+	const details = `Plugin: ${p.name}\nVersion: ${p.version || 'N/A'}\nMarketplace: ${p.marketplaceName}\nDescription: ${p.description || 'No description'}`;
+	await vscode.window.showInformationMessage(details);
+}
+
+async function _getInstallationConfirmation(pluginName: string): Promise<boolean> {
+	const confirmationOptions: vscode.QuickPickItem[] = [
+		{ label: 'Yes' },
+		{ label: 'No' }
+	];
+
+	const confirmation = await vscode.window.showQuickPick(confirmationOptions, {
+		placeHolder: `Install ${pluginName}?`
+	});
+
+	return confirmation?.label === 'Yes';
+}
+
+async function _performInstallation(plugin: any): Promise<void> {
+	await vscode.window.withProgress({
+		location: vscode.ProgressLocation.Notification,
+		title: `Installing ${plugin.name}...`,
+		cancellable: false
+	}, async () => {
+		const service = new MarketplaceService();
+		try {
+			await service.installPlugin(plugin);
+			vscode.window.showInformationMessage(
+				`Plugin '${plugin.name}' installed successfully.`
+			);
+		} catch (error) {
+			const msg = error instanceof Error ? error.message : String(error);
+			vscode.window.showErrorMessage(`Failed to install plugin: ${msg}`);
+		}
+	});
+}
+
+async function _handleAddPlugin(): Promise<void> {
+	const service = new MarketplaceService();
+	const plugins = await service.getAllPlugins();
+
+	if (plugins.length === 0) {
+		vscode.window.showErrorMessage('No plugins found. Please add a marketplace first.');
+		return;
+	}
+
+	const items = plugins.map(p => ({
+		label: p.name,
+		description: `[${p.marketplaceName}]`,
+		detail: p.description || '',
+		plugin: p
+	}));
+
+	const selection = await vscode.window.showQuickPick(items, {
+		placeHolder: 'Select a plugin to install'
+	});
+
+	if (selection) {
+		await _showPluginDetails(selection.plugin);
+		const confirmed = await _getInstallationConfirmation(selection.plugin.name);
+		if (confirmed) {
+			await _performInstallation(selection.plugin);
+		}
+	}
 }
 
 function _handleRemovePlugin(): void {

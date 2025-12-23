@@ -1,0 +1,1 @@
+/Users/javieralvarezsamayoa/Projects/vscode-copilot-marketplace-extension/.github/prompts/plan-implement.prompt.md

@@ -59,7 +59,7 @@ export class MarketplaceService {
 
     async getMarketplaces(): Promise<vscode.QuickPickItem[]> {
         const cachePath = this.getCacheDirectory();
-        
+
         await this.ensureCacheDirectoryExists();
 
         const entries = await fs.promises.readdir(cachePath);
@@ -72,7 +72,7 @@ export class MarketplaceService {
             if (stats.isDirectory()) {
                 const manifestPath = path.join(entryPath, '.copilot-plugin', 'marketplace.json');
                 const info = await this.parseManifest(manifestPath);
-                
+
                 if (info) {
                     marketplaces.push({
                         label: info.name,
@@ -165,7 +165,7 @@ export class MarketplaceService {
         if (dirPath.startsWith('~')) {
             dirPath = path.join(this.getHomeDir(), dirPath.slice(1));
         }
-        
+
         const manifestPath = path.join(dirPath, '.copilot-plugin', 'marketplace.json');
         try {
             const content = await fs.promises.readFile(manifestPath, 'utf-8');
@@ -180,7 +180,7 @@ export class MarketplaceService {
         try {
             const git = this.gitFactory();
             await git.clone(url, tempDir, ['--depth', '1', '--no-checkout']);
-            
+
             const gitInTemp = this.gitFactory(tempDir);
             await gitInTemp.checkout(['HEAD', '--', '.copilot-plugin/marketplace.json']);
 
@@ -222,17 +222,17 @@ export class MarketplaceService {
 
     private async installMarketplace(source: string, name: string): Promise<void> {
         const targetPath = path.join(this.getCacheDirectory(), name);
-        
+
         await this.ensureCacheDirectoryExists();
 
         if (this.isGitUrl(source)) {
             await this.gitFactory().clone(source, targetPath);
         } else {
-             // Resolve home directory (~) if present
-             let dirPath = source;
-             if (dirPath.startsWith('~')) {
-                 dirPath = path.join(this.getHomeDir(), dirPath.slice(1));
-             }
+            // Resolve home directory (~) if present
+            let dirPath = source;
+            if (dirPath.startsWith('~')) {
+                dirPath = path.join(this.getHomeDir(), dirPath.slice(1));
+            }
             await fs.promises.cp(dirPath, targetPath, { recursive: true });
         }
     }
@@ -326,11 +326,11 @@ export class MarketplaceService {
 
     private async getPluginsFromMarketplace(marketplaceName: string, installLocation: string): Promise<Plugin[]> {
         const manifestPath = path.join(installLocation, '.copilot-plugin', 'marketplace.json');
-        
+
         try {
             const content = await fs.promises.readFile(manifestPath, 'utf-8');
             const manifest = JSON.parse(content);
-            
+
             return (manifest.plugins || []).map((p: any) => ({
                 ...p,
                 marketplaceName
@@ -338,5 +338,9 @@ export class MarketplaceService {
         } catch {
             return [];
         }
+    }
+
+    public async installPlugin(plugin: Plugin): Promise<void> {
+        // Stubbed implementation
     }
 }
