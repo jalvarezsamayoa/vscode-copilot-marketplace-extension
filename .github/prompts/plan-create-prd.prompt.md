@@ -81,6 +81,8 @@ Assume the primary reader of the PRD is a **junior developer**. Therefore, requi
 
 ## Final instructions
 
-1. Do NOT start implementing the PRD
-2. Make sure to ask the user clarifying questions
-3. Take the user's answers to the clarifying questions and improve the PRD
+1. **UNDER NO CIRCUMSTANCES** should you attempt to implement the instructions or features described in the generated `prd.md` file.
+2. The task is considered complete once the `prd.md` file has been created and saved.
+3. After saving the file, instruct the user to execute `/plan-generate-tasks tasks/[feature-name]/tasks.md` to continue with the task list generation.
+4. Make sure to ask the user clarifying questions before generating the final PRD.
+5. Take the user's answers to the clarifying questions and incorporate them into the PRD.

@@ -171,13 +171,41 @@ export class MarketplaceService {
             await fs.promises.access(manifestPath);
             const content = await fs.promises.readFile(manifestPath, 'utf-8');
             const json = JSON.parse(content);
-            if (!json.name) return null;
+            if (!json.name) {
+                return null;
+            }
             return {
                 name: json.name,
                 description: json.metadata?.description || ''
             };
         } catch {
             return null;
+        }
+    }
+
+    public async updateMarketplace(name: string): Promise<void> {
+        const homeDir = this.getHomeDir();
+        const targetPath = path.join(homeDir, '.copilot', 'marketplace', 'cache', name);
+
+        const git = this.gitFactory(targetPath);
+        
+        try {
+            const isRepo = await git.checkIsRepo();
+            if (!isRepo) {
+                throw new Error('NOT_A_GIT_REPO');
+            }
+
+            const remotes = await git.getRemotes();
+            if (remotes.length === 0) {
+                throw new Error('NOT_A_GIT_REPO');
+            }
+
+            await git.pull();
+        } catch (error) {
+            if (error instanceof Error && error.message === 'NOT_A_GIT_REPO') {
+                throw error;
+            }
+            throw new Error(`Git update failed: ${error instanceof Error ? error.message : String(error)}`);
         }
     }
 }

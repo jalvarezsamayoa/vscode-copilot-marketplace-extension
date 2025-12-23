@@ -65,10 +65,39 @@ export function activate(context: vscode.ExtensionContext) {
 		vscode.window.showInformationMessage('Remove a marketplace repository.');
 	});
 
-	const updateMarketplace = vscode.commands.registerCommand('vscode-copilot-marketplace.updateMarketplace', () => {
-		// The code you place here will be executed every time your command is executed
-		// Display a message box to the user
-		vscode.window.showInformationMessage('Update a marketplace repository.');
+	const updateMarketplace = vscode.commands.registerCommand('vscode-copilot-marketplace.updateMarketplace', async () => {
+		const service = new MarketplaceService();
+		const marketplaces = await service.getMarketplaces();
+
+		if (marketplaces.length === 0) {
+			vscode.window.showErrorMessage('No marketplaces found to update.');
+			return;
+		}
+
+		const selection = await vscode.window.showQuickPick(marketplaces, {
+			placeHolder: 'Select a marketplace to update'
+		});
+
+		if (!selection) {
+			return;
+		}
+
+		await vscode.window.withProgress({
+			location: vscode.ProgressLocation.Notification,
+			title: `Updating ${selection.label}...`,
+			cancellable: false
+		}, async (progress) => {
+			try {
+				await service.updateMarketplace(selection.label);
+				vscode.window.showInformationMessage(`Marketplace '${selection.label}' updated successfully.`);
+			} catch (error) {
+				if (error instanceof Error && error.message === 'NOT_A_GIT_REPO') {
+					vscode.window.showInformationMessage('This only works for git repositories.');
+				} else {
+					vscode.window.showErrorMessage(`Failed to update marketplace: ${error instanceof Error ? error.message : String(error)}`);
+				}
+			}
+		});
 	});
 
 	const listPlugins = vscode.commands.registerCommand('vscode-copilot-marketplace.listPlugins', () => {

@@ -79,3 +79,10 @@ The process explicitly requires a pause after generating parent tasks to get use
 ## Target Audience
 
 Assume the primary reader of the task list is a **junior developer** who will implement the feature.
+
+## Final Instructions
+
+1. **UNDER NO CIRCUMSTANCES** should you attempt to implement the tasks or code changes described in the generated `tasks.md` file.
+2. The task is considered complete once the `tasks.md` file has been created and saved in the `/tasks/[feature-name]/` directory.
+3. After saving the file, inform the user that the task list has been generated and your current job is finished.
+
