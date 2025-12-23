@@ -2,6 +2,7 @@
 name: Development Best Practices
 description: Guidelines for developing high-quality software
 applyTo: src/**/*.ts
+trigger: model_decision
 ---
 
 # Development Best Practices

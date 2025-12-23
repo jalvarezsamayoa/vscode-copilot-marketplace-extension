@@ -1,0 +1,1 @@
+/Users/javieralvarezsamayoa/Projects/vscode-copilot-marketplace-extension/.github/instructions/typescript-5-es2022.instructions.md

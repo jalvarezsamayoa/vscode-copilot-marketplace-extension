@@ -1,0 +1,1 @@
+/Users/javieralvarezsamayoa/Projects/vscode-copilot-marketplace-extension/.github/instructions/development-bestpractices.md

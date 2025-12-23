@@ -2,6 +2,7 @@
 name: "Task Files"
 description: "Task Files"
 applyTo: tasks/**/task.md
+trigger: model_decision
 ---
 
 # Task Files

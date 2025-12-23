@@ -2,6 +2,7 @@
 name: Markdown Formatting
 description: A guide to formatting text in Markdown
 applyTo: *.md
+trigger: model_decision
 ---
 
 # Markdown Formatting

@@ -2,6 +2,7 @@
 name: Manage Temporary Files
 description: Manage temporary files
 applyTo: **
+trigger: model_decision
 ---
 
 # Manage Temporary Files

@@ -2,6 +2,7 @@
 name: "Git Instructions"
 description: "Instructions for using Git"
 applyTo: **
+trigger: model_decision
 ---
 
 # Git Instructions for Using Git

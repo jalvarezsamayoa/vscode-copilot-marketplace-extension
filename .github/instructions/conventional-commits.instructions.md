@@ -1,7 +1,8 @@
 ---
 name: "Conventional Commits"
 about: "A guide to writing conventional commits for better version control and collaboration."
-applyTo: **
+trigger: model_decision
+applyTo: "**"
 ---
 
 # Conventional Commits
