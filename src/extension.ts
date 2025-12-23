@@ -59,10 +59,48 @@ export function activate(context: vscode.ExtensionContext) {
 		});
 	});
 
-	const removeMarketplace = vscode.commands.registerCommand('vscode-copilot-marketplace.removeMarketplace', () => {
-		// The code you place here will be executed every time your command is executed
-		// Display a message box to the user
-		vscode.window.showInformationMessage('Remove a marketplace repository.');
+	const removeMarketplace = vscode.commands.registerCommand('vscode-copilot-marketplace.removeMarketplace', async () => {
+		const service = new MarketplaceService();
+		const marketplaces = await service.getMarketplaces();
+
+		if (marketplaces.length === 0) {
+			vscode.window.showErrorMessage('No marketplaces found to remove.');
+			return;
+		}
+
+		const selection = await vscode.window.showQuickPick(marketplaces, {
+			placeHolder: 'Select a marketplace to remove'
+		});
+
+		if (!selection) {
+			return;
+		}
+
+		const confirmationOptions: vscode.QuickPickItem[] = [
+			{ label: 'Yes' },
+			{ label: 'No' }
+		];
+
+		const confirmation = await vscode.window.showQuickPick(confirmationOptions, {
+			placeHolder: `Remove ${selection.label}?`
+		});
+
+		if (confirmation?.label !== 'Yes') {
+			return;
+		}
+
+		await vscode.window.withProgress({
+			location: vscode.ProgressLocation.Notification,
+			title: `Removing ${selection.label}...`,
+			cancellable: false
+		}, async (progress) => {
+			try {
+				await service.removeMarketplace(selection.label);
+				vscode.window.showInformationMessage(`Marketplace '${selection.label}' has been successfully removed.`);
+			} catch (error) {
+				vscode.window.showErrorMessage(`Failed to remove marketplace: ${error instanceof Error ? error.message : String(error)}`);
+			}
+		});
 	});
 
 	const updateMarketplace = vscode.commands.registerCommand('vscode-copilot-marketplace.updateMarketplace', async () => {

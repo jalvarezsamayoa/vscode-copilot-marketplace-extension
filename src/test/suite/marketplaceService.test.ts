@@ -163,15 +163,15 @@ suite('MarketplaceService Test Suite', () => {
         const fsAccessStub = sandbox.stub(fs.promises, 'access');
         // Mock access to succeed for cache dir
         fsAccessStub.withArgs(cachePath).resolves(undefined);
-        
+
         const fsReaddirStub = sandbox.stub(fs.promises, 'readdir').resolves(['mp1'] as any);
-        
+
         const mp1Path = path.join(cachePath, 'mp1');
         const mp1ManifestPath = path.join(mp1Path, '.copilot-plugin', 'marketplace.json');
-        
+
         const fsStatStub = sandbox.stub(fs.promises, 'stat');
         fsStatStub.withArgs(mp1Path).resolves({ isDirectory: () => true } as fs.Stats);
-        
+
         // Mock manifest content with description
         const manifestContent = JSON.stringify({
             name: 'Marketplace 1',
@@ -179,18 +179,46 @@ suite('MarketplaceService Test Suite', () => {
                 description: 'Description 1'
             }
         });
-        
+
         sandbox.stub(fs.promises, 'readFile').withArgs(mp1ManifestPath, 'utf-8').resolves(manifestContent);
         // Access check for manifest
         fsAccessStub.withArgs(mp1ManifestPath).resolves(undefined);
 
         const service = new MarketplaceService(mockHomeDir);
         const result: any[] = await service.getMarketplaces();
-        
+
         // This is expected to fail initially as it returns string[]
         assert.strictEqual(result.length, 1);
         // assert structure matches QuickPickItem
         assert.strictEqual(result[0].label, 'Marketplace 1');
         assert.strictEqual(result[0].detail, 'Description 1');
+    });
+
+    test('removeMarketplace should delete marketplace directory', async () => {
+        const mockHomeDir = () => '/mock/home';
+        const mpName = 'test-marketplace';
+        const targetPath = path.join('/mock/home', '.copilot', 'marketplace', 'cache', mpName);
+
+        const rmStub = sandbox.stub(fs.promises, 'rm').resolves();
+
+        const service = new MarketplaceService(mockHomeDir);
+        await service.removeMarketplace(mpName);
+
+        assert.ok(rmStub.calledOnce);
+        assert.strictEqual(rmStub.firstCall.args[0], targetPath);
+    });
+
+    test('removeMarketplace should throw error if deletion fails', async () => {
+        const mockHomeDir = () => '/mock/home';
+        const mpName = 'test-marketplace';
+
+        const error = new Error('Permission denied');
+        sandbox.stub(fs.promises, 'rm').rejects(error);
+
+        const service = new MarketplaceService(mockHomeDir);
+
+        await assert.rejects(async () => {
+            await service.removeMarketplace(mpName);
+        }, /Failed to remove marketplace: Permission denied/);
     });
 });

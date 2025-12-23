@@ -188,7 +188,7 @@ export class MarketplaceService {
         const targetPath = path.join(homeDir, '.copilot', 'marketplace', 'cache', name);
 
         const git = this.gitFactory(targetPath);
-        
+
         try {
             const isRepo = await git.checkIsRepo();
             if (!isRepo) {
@@ -206,6 +206,17 @@ export class MarketplaceService {
                 throw error;
             }
             throw new Error(`Git update failed: ${error instanceof Error ? error.message : String(error)}`);
+        }
+    }
+
+    public async removeMarketplace(name: string): Promise<void> {
+        const homeDir = this.getHomeDir();
+        const targetPath = path.join(homeDir, '.copilot', 'marketplace', 'cache', name);
+
+        try {
+            await fs.promises.rm(targetPath, { recursive: true, force: true });
+        } catch (error) {
+            throw new Error(`Failed to remove marketplace: ${error instanceof Error ? error.message : String(error)}`);
         }
     }
 }
