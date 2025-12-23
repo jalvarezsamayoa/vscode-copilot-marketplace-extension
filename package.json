@@ -3,6 +3,12 @@
   "displayName": "VSCode Copilot Marketplace",
   "description": "VS Code extension for managing and discovering Copilot extensions and agents.",
   "version": "0.0.1",
+  "publisher": "jalvarezsamayoa",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/jalvarezsamayoa/vscode-copilot-marketplace-extension.git"
+  },
+  "license": "MIT",
   "engines": {
     "vscode": "^1.107.0"
   },
