@@ -6,7 +6,7 @@ import simpleGit, { SimpleGit } from 'simple-git';
 import Ajv from 'ajv';
 import addFormats from 'ajv-formats';
 import * as marketplaceSchema from '../schemas/marketplace-schema.json';
-import { readManifest, writeManifest, validateManifestEntry } from '../utils/manifest';
+import * as manifestUtils from '../utils/manifest';
 
 export interface Plugin {
     name: string;
@@ -116,16 +116,16 @@ export class MarketplaceService {
         };
 
         // Validate entry against schema
-        const validation = await validateManifestEntry(entry);
+        const validation = await manifestUtils.validateManifestEntry(entry);
         if (!validation.valid) {
             throw new Error(`Manifest entry validation failed: ${validation.errors?.map(e => e.message).join(', ')}`);
         }
 
         // Read existing manifest, add entry, write back
         const manifestPath = this.getManifestPath();
-        const knownMarketplaces = await readManifest(manifestPath);
+        const knownMarketplaces = await manifestUtils.readManifest(manifestPath);
         knownMarketplaces[name] = entry;
-        await writeManifest(manifestPath, knownMarketplaces);
+        await manifestUtils.writeManifest(manifestPath, knownMarketplaces);
     }
 
     private extractSourceInfo(source: string): { source: 'github' | 'directory'; repo: string } {
@@ -280,10 +280,10 @@ export class MarketplaceService {
 
     private async updateManifestTimestamp(name: string): Promise<void> {
         const manifestPath = this.getManifestPath();
-        const knownMarketplaces = await readManifest(manifestPath);
+        const knownMarketplaces = await manifestUtils.readManifest(manifestPath);
         if (knownMarketplaces[name]) {
             knownMarketplaces[name].lastUpdated = new Date().toISOString();
-            await writeManifest(manifestPath, knownMarketplaces);
+            await manifestUtils.writeManifest(manifestPath, knownMarketplaces);
         }
     }
 
@@ -306,18 +306,18 @@ export class MarketplaceService {
 
         // Remove from manifest
         const manifestPath = this.getManifestPath();
-        const knownMarketplaces = await readManifest(manifestPath);
+        const knownMarketplaces = await manifestUtils.readManifest(manifestPath);
         delete knownMarketplaces[name];
-        await writeManifest(manifestPath, knownMarketplaces);
+        await manifestUtils.writeManifest(manifestPath, knownMarketplaces);
     }
 
     public async getAllPlugins(): Promise<Plugin[]> {
         const manifestPath = this.getManifestPath();
-        const knownMarketplaces = await readManifest(manifestPath);
+        const knownMarketplaces = await manifestUtils.readManifest(manifestPath);
         const allPlugins: Plugin[] = [];
 
         for (const [name, entry] of Object.entries(knownMarketplaces)) {
-            const plugins = await this.getPluginsFromMarketplace(name, entry.installLocation);
+            const plugins = await this.getPluginsFromMarketplace(name, (entry as any).installLocation);
             allPlugins.push(...plugins);
         }
 
@@ -341,6 +341,62 @@ export class MarketplaceService {
     }
 
     public async installPlugin(plugin: Plugin): Promise<void> {
-        // Stubbed implementation
+        const workspaceFolders = vscode.workspace.workspaceFolders;
+        if (!workspaceFolders || workspaceFolders.length === 0) {
+            throw new Error('No workspace folder open');
+        }
+
+        const sourcePath = await this._resolvePluginSourcePath(plugin);
+        const targetRoot = path.join(workspaceFolders[0].uri.fsPath, '.github');
+
+        const installed = await this._copyPluginFiles(sourcePath, targetRoot);
+        if (installed.length > 0) {
+            const msg = `Plugin '${plugin.name}' installed. Folders: ${installed.join(', ')}`;
+            vscode.window.showInformationMessage(msg);
+        }
+    }
+
+    private async _copyPluginFiles(src: string, dest: string): Promise<string[]> {
+        const folders = await fs.promises.readdir(src);
+        const mapping: Record<string, string> = {
+            'skills': 'skills', 'agents': 'agents',
+            'commands': 'prompts', 'instructions': 'instructions'
+        };
+
+        const installed: string[] = [];
+        for (const [key, folderName] of Object.entries(mapping)) {
+            if (folders.includes(key) && await this._shouldCopy(path.join(dest, folderName), key)) {
+                await fs.promises.mkdir(path.join(dest, folderName), { recursive: true });
+                await fs.promises.cp(path.join(src, key), path.join(dest, folderName), { recursive: true });
+                installed.push(key);
+            }
+        }
+        return installed;
+    }
+
+    private async _shouldCopy(target: string, folderName: string): Promise<boolean> {
+        try {
+            await fs.promises.access(target);
+            const msg = `Folder '${folderName}' already exists in .github. Overwrite?`;
+            const selection = await vscode.window.showInformationMessage(msg, 'Overwrite', 'Cancel');
+            return selection === 'Overwrite';
+        } catch {
+            return true;
+        }
+    }
+
+    private async _resolvePluginSourcePath(plugin: Plugin): Promise<string> {
+        const manifestPath = this.getManifestPath();
+        const marketplaces = await manifestUtils.readManifest(manifestPath);
+        const marketplace = marketplaces[plugin.marketplaceName];
+
+        if (!marketplace) {
+            throw new Error(`Marketplace '${plugin.marketplaceName}' not found`);
+        }
+
+        const source = plugin.source;
+        const relativePath = typeof source === 'string' ? source : source.path || '';
+
+        return path.resolve(marketplace.installLocation, relativePath);
     }
 }

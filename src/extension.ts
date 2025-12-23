@@ -152,8 +152,7 @@ async function _handleUpdateMarketplace(): Promise<void> {
 	}
 }
 
-async function _handleListPlugins(): Promise<void> {
-	const service = new MarketplaceService();
+export async function _handleListPlugins(service = new MarketplaceService()): Promise<void> {
 	const plugins = await service.getAllPlugins();
 
 	if (plugins.length === 0) {
@@ -161,22 +160,23 @@ async function _handleListPlugins(): Promise<void> {
 		return;
 	}
 
-	const items: (vscode.QuickPickItem & { plugin: any })[] = plugins.map(p => ({
-		label: p.name,
-		description: `[${p.marketplaceName}]`,
-		detail: p.description || '',
-		plugin: p
-	}));
-
+	const items = plugins.map(_formatPluginQuickPickItem);
 	const selection = await vscode.window.showQuickPick(items, {
 		placeHolder: 'Select a plugin to view details'
 	});
 
 	if (selection) {
-		const p = selection.plugin;
-		const details = `Plugin: ${p.name}\nVersion: ${p.version || 'N/A'}\nMarketplace: ${p.marketplaceName}\nDescription: ${p.description || 'No description'}`;
-		vscode.window.showInformationMessage(details);
+		await _showPluginDetails(selection.plugin);
 	}
+}
+
+function _formatPluginQuickPickItem(p: any): vscode.QuickPickItem & { plugin: any } {
+	return {
+		label: p.name,
+		description: `[${p.marketplaceName}]`,
+		detail: p.description || '',
+		plugin: p
+	};
 }
 
 async function _showPluginDetails(p: any): Promise<void> {
@@ -216,8 +216,7 @@ async function _performInstallation(plugin: any): Promise<void> {
 	});
 }
 
-async function _handleAddPlugin(): Promise<void> {
-	const service = new MarketplaceService();
+export async function _handleAddPlugin(service = new MarketplaceService()): Promise<void> {
 	const plugins = await service.getAllPlugins();
 
 	if (plugins.length === 0) {
