@@ -1,16 +1,15 @@
 # vscode-copilot-marketplace README
 
-This is the README for your extension "vscode-copilot-marketplace". After writing up a brief description, we recommend including the following sections.
+VS Code extension for managing Copilot plugin marketplaces.
 
 ## Features
 
-Describe specific features of your extension including screenshots of your extension in action. Image paths are relative to this README file.
+### Marketplace Management
 
-For example if there is an image subfolder under your extension project workspace:
-
-\!\[feature X\]\(images/feature-x.png\)
-
-> Tip: Many popular extensions utilize animations. This is an excellent way to show off your extension! We recommend short, focused animations that are easy to follow.
+- **Add Marketplaces**: Install marketplaces from Git repositories or local directories via the "Add Copilot Marketplace" command.
+- **List Marketplaces**: View installed marketplaces with the "List Marketplaces" command.
+- **Update Marketplaces**: Pull the latest changes from git-based marketplaces via the "Update Copilot Marketplace" command.
+- **Marketplace Persistence**: Automatically tracks installed marketplaces in `~/.copilot/plugins/known_marketplaces.json` with metadata including source, installation location, and last update timestamp.
 
 ## Requirements
 

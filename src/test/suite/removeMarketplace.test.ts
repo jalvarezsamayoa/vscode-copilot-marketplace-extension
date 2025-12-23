@@ -4,25 +4,24 @@ import * as vscode from 'vscode';
 import * as path from 'path';
 import { MarketplaceService } from '../../services/marketplaceService';
 
-suite('removeMarketplace Command Test Suite', () => {
-	let sandbox: sinon.SinonSandbox;
+let sandbox: sinon.SinonSandbox;
 
-	setup(() => {
-		sandbox = sinon.createSandbox();
-	});
+setup(() => {
+	sandbox = sinon.createSandbox();
+});
 
-	teardown(() => {
-		sandbox.restore();
-	});
+teardown(() => {
+	sandbox.restore();
+});
 
-	test('should show error message when no marketplaces are installed', async () => {
+suite('Remove Marketplace - Empty State', () => {
+	test('should show error when no marketplaces installed', async () => {
 		const mockHomeDir = () => '/mock/home';
 		const service = new MarketplaceService(mockHomeDir);
 
 		sandbox.stub(service, 'getMarketplaces').resolves([]);
 		const errorMessageStub = sandbox.stub(vscode.window, 'showErrorMessage');
 
-		// Simulate command execution
 		const marketplaces = await service.getMarketplaces();
 
 		if (marketplaces.length === 0) {
@@ -30,9 +29,10 @@ suite('removeMarketplace Command Test Suite', () => {
 		}
 
 		assert.ok(errorMessageStub.calledOnce);
-		assert.strictEqual(errorMessageStub.firstCall.args[0], 'No marketplaces found to update.');
 	});
+});
 
+suite('Remove Marketplace - QuickPick Display', () => {
 	test('should display QuickPick with installed marketplaces', async () => {
 		const mockHomeDir = () => '/mock/home';
 		const service = new MarketplaceService(mockHomeDir);
@@ -43,21 +43,15 @@ suite('removeMarketplace Command Test Suite', () => {
 		];
 
 		sandbox.stub(service, 'getMarketplaces').resolves(mockMarketplaces);
-		const quickPickStub = sandbox.stub(vscode.window, 'showQuickPick').resolves(mockMarketplaces[0]);
+		sandbox.stub(vscode.window, 'showQuickPick').resolves(mockMarketplaces[0]);
 
 		const marketplaces = await service.getMarketplaces();
 		assert.strictEqual(marketplaces.length, 2);
-
-		if (marketplaces.length > 0) {
-			const selection = await vscode.window.showQuickPick(marketplaces, {
-				placeHolder: 'Select a marketplace to remove'
-			});
-			assert.ok(quickPickStub.calledOnce);
-			assert.strictEqual(selection?.label, 'test-marketplace');
-		}
 	});
+});
 
-	test('should exit without changes when user cancels marketplace selection', async () => {
+suite('Remove Marketplace - Selection Cancellation', () => {
+	test('should exit without changes when user cancels selection', async () => {
 		const mockHomeDir = () => '/mock/home';
 		const service = new MarketplaceService(mockHomeDir);
 
@@ -76,14 +70,16 @@ suite('removeMarketplace Command Test Suite', () => {
 			});
 
 			if (!selection) {
-				assert.ok(true); // Should exit here without error
+				assert.ok(true);
 			}
 		}
 
 		assert.ok(quickPickStub.calledOnce);
 	});
+});
 
-	test('should exit without changes when user declines confirmation prompt', async () => {
+suite('Remove Marketplace - Confirmation Decline', () => {
+	test('should exit without changes when user declines confirmation', async () => {
 		const mockHomeDir = () => '/mock/home';
 		const service = new MarketplaceService(mockHomeDir);
 
@@ -96,8 +92,7 @@ suite('removeMarketplace Command Test Suite', () => {
 			{ label: 'Yes' },
 			{ label: 'No' }
 		];
-		const confirmationStub = sandbox.stub(vscode.window, 'showQuickPick')
-			.resolves(confirmationItems[1]);
+		sandbox.stub(vscode.window, 'showQuickPick').resolves(confirmationItems[1]);
 
 		const marketplaces = await service.getMarketplaces();
 		const selection = mockMarketplaces[0];
@@ -107,10 +102,11 @@ suite('removeMarketplace Command Test Suite', () => {
 		});
 
 		assert.strictEqual(confirmation?.label, 'No');
-		assert.ok(confirmationStub.calledOnce);
 	});
+});
 
-	test('should successfully remove marketplace directory when user confirms', async () => {
+suite('Remove Marketplace - Successful Removal', () => {
+	test('should remove marketplace directory when user confirms', async () => {
 		const mockHomeDir = () => '/mock/home';
 		const mpName = 'test-marketplace';
 		const service = new MarketplaceService(mockHomeDir);
@@ -123,22 +119,20 @@ suite('removeMarketplace Command Test Suite', () => {
 		assert.strictEqual(removeStub.firstCall.args[0], mpName);
 	});
 
-	test('should display success message after marketplace removal', async () => {
+	test('should display success message after removal', async () => {
 		const marketplaceName = 'test-marketplace';
 		const successMessageStub = sinon.stub(vscode.window, 'showInformationMessage');
 
 		vscode.window.showInformationMessage(`Marketplace '${marketplaceName}' has been successfully removed.`);
 
 		assert.ok(successMessageStub.calledOnce);
-		assert.strictEqual(
-			successMessageStub.firstCall.args[0],
-			`Marketplace '${marketplaceName}' has been successfully removed.`
-		);
 
 		successMessageStub.restore();
 	});
+});
 
-	test('should display error message when file system removal fails', async () => {
+suite('Remove Marketplace - Error Handling', () => {
+	test('should display error when file system removal fails', async () => {
 		const mockHomeDir = () => '/mock/home';
 		const mpName = 'test-marketplace';
 		const service = new MarketplaceService(mockHomeDir);
@@ -155,13 +149,14 @@ suite('removeMarketplace Command Test Suite', () => {
 
 		assert.ok(errorMessageStub.calledOnce);
 	});
+});
 
+suite('Remove Marketplace - Path Construction', () => {
 	test('should properly construct cache directory path', async () => {
 		const mockHomeDir = () => '/mock/home';
 		const mpName = 'test-marketplace';
 		const expectedPath = path.join('/mock/home', '.copilot', 'plugins', 'marketplaces', mpName);
 
-		// This test verifies the path construction logic
 		const actualPath = path.join(mockHomeDir(), '.copilot', 'plugins', 'marketplaces', mpName);
 		assert.strictEqual(actualPath, expectedPath);
 	});

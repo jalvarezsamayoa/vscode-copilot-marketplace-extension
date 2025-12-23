@@ -26,6 +26,14 @@ Check [Keep a Changelog](http://keepachangelog.com/) for recommendations on how 
 
 - Development instructions: `tasks.instructions.md` in `.github/instructions/`.
 
+- Known Marketplaces Manifest feature for persistent tracking of installed marketplaces in `~/.copilot/plugins/known_marketplaces.json`.
+
+- Manifest utility functions: `readManifest()`, `writeManifest()`, and `validateManifestEntry()` in `src/utils/manifest.ts`.
+
+- Manifest persistence integration with marketplace operations: `addMarketplace()`, `removeMarketplace()`, and `updateMarketplace()` now persist metadata to the manifest file.
+
+- JSON schema for known marketplaces (`src/schemas/known-marketplaces-schema.json`) defining structure for source, installLocation, and lastUpdated fields.
+
 ### Fixed
 
 - Allow `repository` field in marketplace schema to support manifests with repository URLs.

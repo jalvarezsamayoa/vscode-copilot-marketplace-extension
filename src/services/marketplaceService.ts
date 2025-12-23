@@ -6,6 +6,7 @@ import simpleGit, { SimpleGit } from 'simple-git';
 import Ajv from 'ajv';
 import addFormats from 'ajv-formats';
 import * as marketplaceSchema from '../schemas/marketplace-schema.json';
+import { readManifest, writeManifest, validateManifestEntry } from '../utils/manifest';
 
 export class MarketplaceService {
     private readonly getHomeDir: () => string;
@@ -25,6 +26,10 @@ export class MarketplaceService {
             return envPath;
         }
         return path.join(this.getHomeDir(), '.copilot', 'plugins', 'marketplaces');
+    }
+
+    private getManifestPath(): string {
+        return path.join(this.getHomeDir(), '.copilot', 'plugins', 'known_marketplaces.json');
     }
 
     async ensureCacheDirectoryExists(): Promise<void> {
@@ -78,7 +83,54 @@ export class MarketplaceService {
         await this.checkCollision(name);
 
         await this.installMarketplace(source, name);
+
+        // Persist marketplace to manifest
+        await this.persistMarketplaceToManifest(source, name);
+
         return name;
+    }
+
+    private async persistMarketplaceToManifest(source: string, name: string): Promise<void> {
+        const installLocation = path.join(this.getCacheDirectory(), name);
+        const sourceInfo = this.extractSourceInfo(source);
+
+        const entry = {
+            source: sourceInfo,
+            installLocation,
+            lastUpdated: new Date().toISOString()
+        };
+
+        // Validate entry against schema
+        const validation = await validateManifestEntry(entry);
+        if (!validation.valid) {
+            throw new Error(`Manifest entry validation failed: ${validation.errors?.map(e => e.message).join(', ')}`);
+        }
+
+        // Read existing manifest, add entry, write back
+        const manifestPath = this.getManifestPath();
+        const knownMarketplaces = await readManifest(manifestPath);
+        knownMarketplaces[name] = entry;
+        await writeManifest(manifestPath, knownMarketplaces);
+    }
+
+    private extractSourceInfo(source: string): { source: 'github' | 'directory'; repo: string } {
+        if (this.isGitUrl(source)) {
+            // Extract owner/repo from git URL
+            const match = source.match(/github\.com[/:]([^/]+)\/([^/.]+)(\.git)?/);
+            if (match) {
+                return { source: 'github', repo: `${match[1]}/${match[2]}` };
+            }
+            // Fallback for other git URLs
+            return { source: 'github', repo: source };
+        }
+
+        // For local directories, use a convention: local/dirname
+        let dirPath = source;
+        if (dirPath.startsWith('~')) {
+            dirPath = path.join(this.getHomeDir(), dirPath.slice(1));
+        }
+        const dirName = path.basename(dirPath);
+        return { source: 'directory', repo: `local/${dirName}` };
     }
 
     private async fetchManifest(source: string): Promise<any> {
@@ -199,10 +251,7 @@ export class MarketplaceService {
         }
     }
 
-    public async updateMarketplace(name: string): Promise<void> {
-        const targetPath = path.join(this.getCacheDirectory(), name);
-        const git = this.gitFactory(targetPath);
-
+    private async updateGitRepository(git: SimpleGit): Promise<void> {
         try {
             await this.validateGitRepository(git);
             await git.pull();
@@ -214,6 +263,23 @@ export class MarketplaceService {
         }
     }
 
+    private async updateManifestTimestamp(name: string): Promise<void> {
+        const manifestPath = this.getManifestPath();
+        const knownMarketplaces = await readManifest(manifestPath);
+        if (knownMarketplaces[name]) {
+            knownMarketplaces[name].lastUpdated = new Date().toISOString();
+            await writeManifest(manifestPath, knownMarketplaces);
+        }
+    }
+
+    public async updateMarketplace(name: string): Promise<void> {
+        const targetPath = path.join(this.getCacheDirectory(), name);
+        const git = this.gitFactory(targetPath);
+
+        await this.updateGitRepository(git);
+        await this.updateManifestTimestamp(name);
+    }
+
     public async removeMarketplace(name: string): Promise<void> {
         const targetPath = path.join(this.getCacheDirectory(), name);
 
@@ -222,5 +288,11 @@ export class MarketplaceService {
         } catch (error) {
             throw new Error(`Failed to remove marketplace: ${error instanceof Error ? error.message : String(error)}`);
         }
+
+        // Remove from manifest
+        const manifestPath = this.getManifestPath();
+        const knownMarketplaces = await readManifest(manifestPath);
+        delete knownMarketplaces[name];
+        await writeManifest(manifestPath, knownMarketplaces);
     }
 }
