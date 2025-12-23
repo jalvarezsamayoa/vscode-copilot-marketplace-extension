@@ -1,6 +1,7 @@
 import * as os from 'os';
 import * as fs from 'fs';
 import * as path from 'path';
+import * as vscode from 'vscode';
 import simpleGit, { SimpleGit } from 'simple-git';
 import Ajv from 'ajv';
 import addFormats from 'ajv-formats';
@@ -29,14 +30,14 @@ export class MarketplaceService {
         }
     }
 
-    async getMarketplaces(): Promise<string[]> {
+    async getMarketplaces(): Promise<vscode.QuickPickItem[]> {
         const homeDir = this.getHomeDir();
         const cachePath = path.join(homeDir, '.copilot', 'marketplace', 'cache');
         
         await this.ensureCacheDirectoryExists();
 
         const entries = await fs.promises.readdir(cachePath);
-        const marketplaces: string[] = [];
+        const marketplaces: vscode.QuickPickItem[] = [];
 
         for (const entry of entries) {
             const entryPath = path.join(cachePath, entry);
@@ -44,9 +45,18 @@ export class MarketplaceService {
 
             if (stats.isDirectory()) {
                 const manifestPath = path.join(entryPath, '.copilot-plugin', 'marketplace.json');
-                const name = await this.parseManifest(manifestPath);
-                if (name) {
-                    marketplaces.push(name);
+                const info = await this.parseManifest(manifestPath);
+                
+                if (info) {
+                    marketplaces.push({
+                        label: info.name,
+                        detail: info.description
+                    });
+                } else {
+                    marketplaces.push({
+                        label: entry,
+                        detail: ''
+                    });
                 }
             }
         }
@@ -156,12 +166,16 @@ export class MarketplaceService {
         }
     }
 
-    private async parseManifest(manifestPath: string): Promise<string | null> {
+    private async parseManifest(manifestPath: string): Promise<{ name: string, description: string } | null> {
         try {
             await fs.promises.access(manifestPath);
             const content = await fs.promises.readFile(manifestPath, 'utf-8');
             const json = JSON.parse(content);
-            return json.name || null;
+            if (!json.name) return null;
+            return {
+                name: json.name,
+                description: json.metadata?.description || ''
+            };
         } catch {
             return null;
         }

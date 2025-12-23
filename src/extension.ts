@@ -21,7 +21,13 @@ export function activate(context: vscode.ExtensionContext) {
 		if (marketplaces.length === 0) {
 			vscode.window.showErrorMessage('No marketplaces found. Please add a marketplace repository first.');
 		} else {			
-			vscode.window.showQuickPick(marketplaces);
+			const selection = await vscode.window.showQuickPick(marketplaces, {
+				placeHolder: 'Select a marketplace'
+			});
+			
+			if (selection) {
+				vscode.window.showInformationMessage(`Selected: ${selection.label}`);
+			}
 		}
 	});
 
