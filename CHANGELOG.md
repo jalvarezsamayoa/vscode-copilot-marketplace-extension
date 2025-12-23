@@ -8,6 +8,10 @@ Check [Keep a Changelog](http://keepachangelog.com/) for recommendations on how 
 
 ### Added
 
+- `listPlugins` command to aggregate and display plugins from all installed marketplaces.
+
+- `getAllPlugins()` method in `MarketplaceService` to discover and aggregate plugins from installed marketplaces.
+
 - `MarketplaceService` for managing marketplace repositories.
 
 - `listMarketplace` command implementation to show available marketplaces.

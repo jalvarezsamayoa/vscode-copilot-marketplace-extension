@@ -152,8 +152,31 @@ async function _handleUpdateMarketplace(): Promise<void> {
 	}
 }
 
-function _handleListPlugins(): void {
-	vscode.window.showInformationMessage('List of installed plugins.');
+async function _handleListPlugins(): Promise<void> {
+	const service = new MarketplaceService();
+	const plugins = await service.getAllPlugins();
+
+	if (plugins.length === 0) {
+		vscode.window.showErrorMessage('No plugins found. Please add a marketplace first.');
+		return;
+	}
+
+	const items: (vscode.QuickPickItem & { plugin: any })[] = plugins.map(p => ({
+		label: p.name,
+		description: `[${p.marketplaceName}]`,
+		detail: p.description || '',
+		plugin: p
+	}));
+
+	const selection = await vscode.window.showQuickPick(items, {
+		placeHolder: 'Select a plugin to view details'
+	});
+
+	if (selection) {
+		const p = selection.plugin;
+		const details = `Plugin: ${p.name}\nVersion: ${p.version || 'N/A'}\nMarketplace: ${p.marketplaceName}\nDescription: ${p.description || 'No description'}`;
+		vscode.window.showInformationMessage(details);
+	}
 }
 
 function _handleAddPlugin(): void {

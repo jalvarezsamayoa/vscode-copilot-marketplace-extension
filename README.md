@@ -8,6 +8,7 @@ VS Code extension for managing Copilot plugin marketplaces.
 
 - **Add Marketplaces**: Install marketplaces from Git repositories or local directories via the "Add Copilot Marketplace" command.
 - **List Marketplaces**: View installed marketplaces with the "List Marketplaces" command.
+- **List Plugins**: Aggregate and view all plugins available from your installed marketplaces via the "List Plugins" command.
 - **Update Marketplaces**: Pull the latest changes from git-based marketplaces via the "Update Copilot Marketplace" command.
 - **Marketplace Persistence**: Automatically tracks installed marketplaces in `~/.copilot/plugins/known_marketplaces.json` with metadata including source, installation location, and last update timestamp.
 

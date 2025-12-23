@@ -8,6 +8,21 @@ import addFormats from 'ajv-formats';
 import * as marketplaceSchema from '../schemas/marketplace-schema.json';
 import { readManifest, writeManifest, validateManifestEntry } from '../utils/manifest';
 
+export interface Plugin {
+    name: string;
+    source: string | { source: 'github' | 'url', repo?: string, url?: string, ref?: string, path?: string };
+    description?: string;
+    version?: string;
+    author?: { name: string, email?: string };
+    homepage?: string;
+    repository?: string;
+    license?: string;
+    keywords?: string[];
+    category?: string;
+    tags?: string[];
+    marketplaceName: string;
+}
+
 export class MarketplaceService {
     private readonly getHomeDir: () => string;
     private readonly gitFactory: (baseDir?: string) => SimpleGit;
@@ -294,5 +309,34 @@ export class MarketplaceService {
         const knownMarketplaces = await readManifest(manifestPath);
         delete knownMarketplaces[name];
         await writeManifest(manifestPath, knownMarketplaces);
+    }
+
+    public async getAllPlugins(): Promise<Plugin[]> {
+        const manifestPath = this.getManifestPath();
+        const knownMarketplaces = await readManifest(manifestPath);
+        const allPlugins: Plugin[] = [];
+
+        for (const [name, entry] of Object.entries(knownMarketplaces)) {
+            const plugins = await this.getPluginsFromMarketplace(name, entry.installLocation);
+            allPlugins.push(...plugins);
+        }
+
+        return allPlugins.sort((a, b) => a.name.toLowerCase().localeCompare(b.name.toLowerCase()));
+    }
+
+    private async getPluginsFromMarketplace(marketplaceName: string, installLocation: string): Promise<Plugin[]> {
+        const manifestPath = path.join(installLocation, '.copilot-plugin', 'marketplace.json');
+        
+        try {
+            const content = await fs.promises.readFile(manifestPath, 'utf-8');
+            const manifest = JSON.parse(content);
+            
+            return (manifest.plugins || []).map((p: any) => ({
+                ...p,
+                marketplaceName
+            }));
+        } catch {
+            return [];
+        }
     }
 }

@@ -295,3 +295,130 @@ suite('Error Recovery - Permissions', () => {
 		assert.ok(true);
 	});
 });
+
+suite('Get All Plugins - Empty Manifest', () => {
+    test('should return empty array if no marketplaces are in manifest', async () => {
+        const mockHomeDir = () => '/mock/home';
+        sandbox.stub(manifestModule, 'readManifest').resolves({});
+
+        const service = new MarketplaceService(mockHomeDir);
+        const result = await (service as any).getAllPlugins();
+
+        assert.deepStrictEqual(result, []);
+    });
+});
+
+function setupManifest(mp1Path: string, mp2Path: string): manifestModule.Manifest {
+    return {
+        'mp1': {
+            source: { source: 'github', repo: 'org/mp1' },
+            installLocation: mp1Path,
+            lastUpdated: new Date().toISOString()
+        },
+        'mp2': {
+            source: { source: 'github', repo: 'org/mp2' },
+            installLocation: mp2Path,
+            lastUpdated: new Date().toISOString()
+        }
+    };
+}
+
+async function runAggregateTest(sandbox: sinon.SinonSandbox) {
+    const mockHomeDir = () => '/mock/home';
+    const mp1Path = '/cache/mp1';
+    const mp2Path = '/cache/mp2';
+
+    sandbox.stub(manifestModule, 'readManifest').resolves(setupManifest(mp1Path, mp2Path));
+
+    const mp1Manifest = {
+        name: 'mp1',
+        owner: { name: 'owner1' },
+        plugins: [
+            { name: 'plugin1', source: './p1', description: 'desc1' },
+            { name: 'plugin2', source: './p2', description: 'desc2' }
+        ]
+    };
+
+    const mp2Manifest = {
+        name: 'mp2',
+        owner: { name: 'owner2' },
+        plugins: [
+            { name: 'plugin3', source: './p3', description: 'desc3' }
+        ]
+    };
+
+    const readFileStub = sandbox.stub(fs.promises, 'readFile');
+    readFileStub.withArgs(path.join(mp1Path, '.copilot-plugin', 'marketplace.json'), 'utf-8').resolves(JSON.stringify(mp1Manifest));
+    readFileStub.withArgs(path.join(mp2Path, '.copilot-plugin', 'marketplace.json'), 'utf-8').resolves(JSON.stringify(mp2Manifest));
+
+    sandbox.stub(fs.promises, 'access').resolves();
+
+    const service = new MarketplaceService(mockHomeDir);
+    const result = await (service as any).getAllPlugins();
+
+    assert.strictEqual(result.length, 3);
+    assert.strictEqual(result[0].name, 'plugin1');
+    assert.strictEqual(result[0].marketplaceName, 'mp1');
+}
+
+suite('Get All Plugins - Multiple Marketplaces', () => {
+    test('should aggregate plugins from all marketplaces in manifest', () => runAggregateTest(sandbox));
+});
+
+async function runSkipTest(sandbox: sinon.SinonSandbox) {
+    const mockHomeDir = () => '/mock/home';
+    const mp1Path = '/cache/mp1';
+
+    const manifest: manifestModule.Manifest = {
+        'mp1': {
+            source: { source: 'github', repo: 'org/mp1' },
+            installLocation: mp1Path,
+            lastUpdated: new Date().toISOString()
+        }
+    };
+
+    sandbox.stub(manifestModule, 'readManifest').resolves(manifest);
+    sandbox.stub(fs.promises, 'readFile').rejects(new Error('ENOENT'));
+
+    const service = new MarketplaceService(mockHomeDir);
+    const result = await (service as any).getAllPlugins();
+
+    assert.deepStrictEqual(result, []);
+}
+
+async function runSortTest(sandbox: sinon.SinonSandbox) {
+    const mockHomeDir = () => '/mock/home';
+    const mpPath = '/cache/mp';
+
+    sandbox.stub(manifestModule, 'readManifest').resolves({
+        'mp': {
+            source: { source: 'github', repo: 'org/mp' },
+            installLocation: mpPath,
+            lastUpdated: new Date().toISOString()
+        }
+    });
+
+    const mpManifest = {
+        name: 'mp',
+        owner: { name: 'owner' },
+        plugins: [
+            { name: 'banana', source: './b' },
+            { name: 'Apple', source: './A' },
+            { name: 'cherry', source: './c' }
+        ]
+    };
+
+    sandbox.stub(fs.promises, 'readFile').resolves(JSON.stringify(mpManifest));
+
+    const service = new MarketplaceService(mockHomeDir);
+    const result = await (service as any).getAllPlugins();
+
+    assert.strictEqual(result[0].name, 'Apple');
+    assert.strictEqual(result[1].name, 'banana');
+    assert.strictEqual(result[2].name, 'cherry');
+}
+
+suite('Get All Plugins - Edge Cases', () => {
+    test('should skip marketplace if marketplace.json is missing or invalid', () => runSkipTest(sandbox));
+    test('should sort plugins case-insensitively by name', () => runSortTest(sandbox));
+});
